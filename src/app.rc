@@ -11,10 +11,14 @@ BEGIN
     LTEXT           "Detected games:", -1, 7, 7, 120, 9
     CONTROL         "", IDC_GAMES, WC_LISTVIEW, LVS_REPORT | LVS_SINGLESEL | LVS_NOSORTHEADER | WS_BORDER | WS_TABSTOP, 7, 18, 426, 70
     GROUPBOX        "Options", -1, 7, 93, 426, 40
-    LTEXT           "Widescreen layout and fixes are always installed.", -1, 15, 104, 300, 9
-    AUTOCHECKBOX    "&Readable fonts (Palatino body text and loading screen)", IDC_FONTS, 15, 116, 200, 10, WS_DISABLED
+    AUTOCHECKBOX    "&Widescreen fix", IDC_WIDESCREEN, 15, 104, 200, 10, WS_DISABLED
+    AUTOCHECKBOX    "&Readable fonts (Palatino body text and loading screen)", IDC_FONTS, 15, 116, 200, 10
     AUTOCHECKBOX    "&Skip intro videos and splash fade", IDC_SKIP_INTRO, 225, 116, 200, 10
     PUSHBUTTON      "&Install", IDC_INSTALL, 327, 138, 50, 14
     PUSHBUTTON      "&Uninstall", IDC_UNINSTALL, 383, 138, 50, 14
     EDITTEXT        IDC_LOG, 7, 158, 426, 105, ES_MULTILINE | ES_READONLY | ES_AUTOVSCROLL | WS_VSCROLL | WS_BORDER
 END
+
+BASE16_RECIPE RCDATA "data/recipes/base16.recipe"
+HOF21_RECIPE RCDATA "data/recipes/hof21.recipe"
+BLANK_OGG RCDATA "data/blank.ogg"

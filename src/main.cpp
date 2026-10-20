@@ -1,23 +1,35 @@
 #include "games.h"
 #include "hook_install.h"
+#include "pak_install.h"
 #include "product.h"
 #include "resource.h"
 
 #include <windows.h>
 #include <commctrl.h>
 
+#include <memory>
 #include <string>
+#include <thread>
 #include <vector>
 
 namespace {
 
+constexpr UINT kLogMessage = WM_APP + 1;  // lparam: heap std::wstring*, owned by the receiver
+constexpr UINT kJobDoneMessage = WM_APP + 2;
+
 std::vector<Game> g_games;
+std::thread g_job;
 
 void AppendLog(HWND dialog, const std::wstring& line) {
     HWND log = GetDlgItem(dialog, IDC_LOG);
     const int end = GetWindowTextLengthW(log);
     SendMessageW(log, EM_SETSEL, end, end);
     SendMessageW(log, EM_REPLACESEL, FALSE, reinterpret_cast<LPARAM>((line + L"\r\n").c_str()));
+}
+
+// Safe from the worker thread.
+void PostLog(HWND dialog, std::wstring line) {
+    PostMessageW(dialog, kLogMessage, 0, reinterpret_cast<LPARAM>(new std::wstring(std::move(line))));
 }
 
 std::wstring Widen(const std::string& text) {
@@ -82,32 +94,49 @@ void RefreshPatchColumn(HWND dialog) {
     for (int row = 0; row < static_cast<int>(g_games.size()); ++row) SetCell(list, row, 4, PatchStatus(g_games[row]));
 }
 
-void InitOptions(HWND dialog) {
-    bool anySupported = false;
-    bool skipFade = true;
+bool AnySupported() {
     for (const Game& game : g_games) {
-        if (!game.build) continue;
-        anySupported = true;
-        if (QueryHook(game) == HookState::Installed) skipFade = ReadSkipFade(game);
+        if (game.build) return true;
     }
-    CheckDlgButton(dialog, IDC_SKIP_INTRO, skipFade ? BST_CHECKED : BST_UNCHECKED);
-    EnableWindow(GetDlgItem(dialog, IDC_SKIP_INTRO), anySupported);
-    EnableWindow(GetDlgItem(dialog, IDC_INSTALL), anySupported);
-    EnableWindow(GetDlgItem(dialog, IDC_UNINSTALL), !g_games.empty());
+    return false;
 }
 
-void Install(HWND dialog) {
-    const bool skipFade = IsDlgButtonChecked(dialog, IDC_SKIP_INTRO) == BST_CHECKED;
+void EnableControls(HWND dialog, bool enabled) {
+    const bool supported = enabled && AnySupported();
+    EnableWindow(GetDlgItem(dialog, IDC_SKIP_INTRO), supported);
+    EnableWindow(GetDlgItem(dialog, IDC_FONTS), supported);
+    EnableWindow(GetDlgItem(dialog, IDC_INSTALL), supported);
+    EnableWindow(GetDlgItem(dialog, IDC_UNINSTALL), enabled && !g_games.empty());
+}
+
+void InitOptions(HWND dialog) {
+    bool skipFade = true;
+    bool fonts = true;
+    for (const Game& game : g_games) {
+        if (!game.build) continue;
+        if (QueryHook(game) == HookState::Installed) {
+            skipFade = ReadSkipFade(game);
+            fonts = ReadFontsOption(game);
+        }
+    }
+    CheckDlgButton(dialog, IDC_WIDESCREEN, BST_CHECKED);
+    CheckDlgButton(dialog, IDC_SKIP_INTRO, skipFade ? BST_CHECKED : BST_UNCHECKED);
+    CheckDlgButton(dialog, IDC_FONTS, fonts ? BST_CHECKED : BST_UNCHECKED);
+    EnableControls(dialog, true);
+}
+
+void Install(HWND dialog, bool skipFade, bool fonts) {
     for (const Game& game : g_games) {
         const std::wstring name(GameName(game.id));
         if (!game.build) {
-            AppendLog(dialog, name + L": skipped, " + ExeStatus(game) + L" (only unmodified store builds are supported)");
+            PostLog(dialog, name + L": skipped, " + ExeStatus(game) + L" (only unmodified store builds are supported)");
             continue;
         }
+        PostLog(dialog, name + L": building game data...");
         std::wstring error;
-        AppendLog(dialog, name + (InstallHook(game, skipFade, error) ? L": installed" : L": FAILED, " + error));
+        const bool ok = InstallHook(game, skipFade, error) && InstallGamePak(game, fonts, skipFade, error);
+        PostLog(dialog, name + (ok ? L": installed" : L": FAILED, " + error));
     }
-    RefreshPatchColumn(dialog);
 }
 
 void Uninstall(HWND dialog) {
@@ -115,15 +144,24 @@ void Uninstall(HWND dialog) {
         const std::wstring name(GameName(game.id));
         const HookState state = QueryHook(game);
         std::wstring error;
-        if (!UninstallHook(game, error)) {
-            AppendLog(dialog, name + L": FAILED, " + error);
+        if (!UninstallGamePak(game, error) || !UninstallHook(game, error)) {
+            PostLog(dialog, name + L": FAILED, " + error);
         } else if (state == HookState::Foreign) {
-            AppendLog(dialog, name + L": the dinput8.dll there is not ours, left in place");
+            PostLog(dialog, name + L": the dinput8.dll there is not ours, left in place");
         } else {
-            AppendLog(dialog, name + (state == HookState::Installed ? L": uninstalled" : L": nothing to remove"));
+            PostLog(dialog, name + (state == HookState::Installed ? L": uninstalled" : L": nothing to remove"));
         }
     }
-    RefreshPatchColumn(dialog);
+}
+
+template <typename Job>
+void StartJob(HWND dialog, const wchar_t* title, Job job) {
+    EnableControls(dialog, false);
+    AppendLog(dialog, title);
+    g_job = std::thread([dialog, job] {
+        job();
+        PostMessageW(dialog, kJobDoneMessage, 0, 0);
+    });
 }
 
 void ReportGames(HWND dialog) {
@@ -138,7 +176,7 @@ void ReportGames(HWND dialog) {
     }
 }
 
-INT_PTR CALLBACK DialogProc(HWND dialog, UINT message, WPARAM wparam, LPARAM) {
+INT_PTR CALLBACK DialogProc(HWND dialog, UINT message, WPARAM wparam, LPARAM lparam) {
     switch (message) {
         case WM_INITDIALOG:
             g_games = DetectGames();
@@ -146,15 +184,33 @@ INT_PTR CALLBACK DialogProc(HWND dialog, UINT message, WPARAM wparam, LPARAM) {
             ReportGames(dialog);
             InitOptions(dialog);
             return TRUE;
+        case kLogMessage: {
+            const std::unique_ptr<std::wstring> line(reinterpret_cast<std::wstring*>(lparam));
+            AppendLog(dialog, *line);
+            return TRUE;
+        }
+        case kJobDoneMessage:
+            g_job.join();
+            AppendLog(dialog, L"Done.");
+            RefreshPatchColumn(dialog);
+            EnableControls(dialog, true);
+            return TRUE;
         case WM_COMMAND:
             switch (LOWORD(wparam)) {
-                case IDC_INSTALL:
-                    Install(dialog);
+                case IDC_INSTALL: {
+                    const bool skipFade = IsDlgButtonChecked(dialog, IDC_SKIP_INTRO) == BST_CHECKED;
+                    const bool fonts = IsDlgButtonChecked(dialog, IDC_FONTS) == BST_CHECKED;
+                    StartJob(dialog, L"Starting installation...", [dialog, skipFade, fonts] { Install(dialog, skipFade, fonts); });
                     return TRUE;
+                }
                 case IDC_UNINSTALL:
-                    Uninstall(dialog);
+                    StartJob(dialog, L"Starting uninstallation...", [dialog] { Uninstall(dialog); });
                     return TRUE;
                 case IDCANCEL:
+                    if (g_job.joinable()) {
+                        AppendLog(dialog, L"Please wait until the current operation finishes.");
+                        return TRUE;
+                    }
                     EndDialog(dialog, 0);
                     return TRUE;
             }

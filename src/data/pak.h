@@ -9,15 +9,18 @@
 #include <unordered_map>
 #include <vector>
 
-// The game's merged view of several .pak (zip) archives.
+// The game's merged view of several .pak (zip) archives; entry names are case-insensitive.
 class PakArchives {
 public:
+    static constexpr int kTextPriority = -1;
+
     PakArchives() = default;
     PakArchives(const PakArchives&) = delete;
     PakArchives& operator=(const PakArchives&) = delete;
     ~PakArchives();
 
-    // Higher priority wins; on equal priority the newer DOS timestamp wins; full ties keep the earlier pak.
+    // Engine rule (HoF FUN_009eded0): if the priorities are equal or either is kTextPriority, the newer
+    // DOS timestamp wins, otherwise the higher priority; ties keep the earlier pak, so mount order matters.
     bool Add(const std::filesystem::path& pak, int priority, std::wstring& error);
     std::optional<std::vector<uint8_t>> Read(const std::string& name, std::wstring& error) const;
 

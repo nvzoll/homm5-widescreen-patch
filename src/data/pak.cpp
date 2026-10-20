@@ -9,6 +9,13 @@ std::wstring Widen(const std::string& text) {
     return {text.begin(), text.end()};
 }
 
+std::string Lower(std::string text) {
+    for (char& c : text) {
+        if (c >= 'A' && c <= 'Z') c = static_cast<char>(c - 'A' + 'a');
+    }
+    return text;
+}
+
 bool Fail(std::wstring& error, const std::filesystem::path& path, const std::wstring& what) {
     error = path.wstring() + L": " + what;
     return false;
@@ -37,9 +44,10 @@ bool PakArchives::Add(const std::filesystem::path& pak, int priority, std::wstri
         }
         Location location{priority, static_cast<uint32_t>(info.dosDate), index, {}, info.uncompressed_size};
         unzGetFilePos64(zip, &location.position);
-        const auto [it, inserted] = files_.try_emplace(name, location);
+        const auto [it, inserted] = files_.try_emplace(Lower(name), location);
         const Location& current = it->second;
-        if (!inserted && (priority > current.priority || (priority == current.priority && location.dosDateTime > current.dosDateTime))) {
+        const bool byDate = priority == current.priority || priority == kTextPriority || current.priority == kTextPriority;
+        if (!inserted && (byDate ? location.dosDateTime > current.dosDateTime : priority > current.priority)) {
             it->second = location;
         }
     }
@@ -47,7 +55,7 @@ bool PakArchives::Add(const std::filesystem::path& pak, int priority, std::wstri
 }
 
 std::optional<std::vector<uint8_t>> PakArchives::Read(const std::string& name, std::wstring& error) const {
-    const auto it = files_.find(name);
+    const auto it = files_.find(Lower(name));
     if (it == files_.end()) return std::nullopt;
     const Location& location = it->second;
     const unzFile zip = paks_[location.pak];

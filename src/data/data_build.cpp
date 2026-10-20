@@ -1,56 +1,78 @@
 #include "data_build.h"
 
+#include "font_build.h"
+#include "game_paks.h"
+#include "intro_skip.h"
 #include "pak.h"
 #include "recipe.h"
 
-#include <array>
+#include <algorithm>
+#include <cwctype>
+#include <set>
 #include <vector>
 
 namespace {
 
-struct SourcePak {
-    const wchar_t* path;
-    int priority;
-};
+// Newer than every shipped entry, which matters wherever the game compares dates (text paks, ToE).
+constexpr uint32_t kGamePakDosDateTime = (2026 - 1980) << 25 | 10 << 21 | 20 << 16 | 12 << 11;
 
-// The paks the game itself would read the recipe's source entries from, with its priorities
-// (base FUN_006c4a60, HoF FUN_006ec930; unlisted paks mount at 0). Must match tools/gen_recipe.py.
-constexpr std::array kBaseSources = {
-    SourcePak{L"datals/p6-data.pak", 2},
-    SourcePak{L"datals/p5-data.pak", 1},
-    SourcePak{L"data/p3c-data.pak", 0},
-    SourcePak{L"data/data.pak", 0},
-};
-constexpr std::array kHofSources = {
-    SourcePak{L"dataa1/a1p1-data.pak", 3},
-    SourcePak{L"dataa1/a1-data.pak", 2},
-    SourcePak{L"data/p3c-data.pak", 0},
-    SourcePak{L"data/data.pak", 0},
-};
+std::string Lower(std::string text) {
+    std::transform(text.begin(), text.end(), text.begin(), [](char c) { return c >= 'A' && c <= 'Z' ? static_cast<char>(c - 'A' + 'a') : c; });
+    return text;
+}
 
-std::span<const SourcePak> SourcesFor(GameId game) {
-    switch (game) {
-        case GameId::Base: return kBaseSources;
-        case GameId::HammersOfFate: return kHofSources;
-        case GameId::TribesOfTheEast: break;
+bool CheckUnique(const std::vector<PakFile>& files, std::wstring& error) {
+    std::set<std::string> names;
+    for (const PakFile& file : files) {
+        if (!names.insert(Lower(file.name)).second) {
+            error = std::wstring(file.name.begin(), file.name.end()) + L": built twice";
+            return false;
+        }
     }
-    return {};
+    return true;
 }
 
 }  // namespace
 
 bool BuildDataPak(GameId game, const std::filesystem::path& root, std::span<const uint8_t> recipe,
                   const std::filesystem::path& out, std::wstring& error) {
-    const auto sources = SourcesFor(game);
-    if (sources.empty()) {
+    if (game == GameId::TribesOfTheEast) {
         error = L"no data pak is needed for this game";
         return false;
     }
     PakArchives archives;
-    for (const SourcePak& source : sources) {
-        if (!archives.Add(root / source.path, source.priority, error)) return false;
-    }
     std::vector<PakFile> files;
     uint32_t dosDateTime = 0;
-    return ApplyRecipe(recipe, archives, files, dosDateTime, error) && WritePak(out, files, dosDateTime, error);
+    return MountGamePaks(game, root, archives, error) && ApplyRecipe(recipe, archives, files, dosDateTime, error) &&
+           WritePak(out, files, dosDateTime, error);
+}
+
+bool BuildGamePak(GameId game, const std::filesystem::path& root, std::span<const uint8_t> recipe, const GamePakOptions& options,
+                  const std::filesystem::path& out, std::wstring& error) {
+    PakArchives archives;
+    if (!MountGamePaks(game, root, archives, error)) return false;
+    std::vector<PakFile> files;
+    uint32_t recipeDate = 0;
+    if (!recipe.empty() && !ApplyRecipe(recipe, archives, files, recipeDate, error)) return false;
+    if (options.fonts && !(BuildBodyFonts(archives, files, error) && BuildBriefFonts(archives, files, error) &&
+                           BuildLoadingScreenTexts(archives, files, error))) {
+        return false;
+    }
+    if (options.skipIntro && !BuildIntroSkip(archives, files, error)) return false;
+    if (files.empty()) {
+        error = L"nothing to install";
+        return false;
+    }
+    if (!CheckUnique(files, error)) return false;
+    auto temporary = out;
+    temporary += L".tmp";
+    if (!WritePak(temporary, files, kGamePakDosDateTime, error)) return false;
+    std::error_code ec;
+    std::filesystem::rename(temporary, out, ec);
+    if (ec) {
+        std::filesystem::remove(temporary, ec);
+        error = out.wstring() + L": cannot replace";
+        return false;
+    }
+    return true;
 }

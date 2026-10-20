@@ -32,6 +32,7 @@ add_library(homm5-widescreen-hook SHARED
     src/hook/base16.cpp
     src/hook/hof21.cpp
     src/hook/toe31.cpp
+    src/hook/own_pak.cpp
     src/hook/exports.def
     src/hook/hook.rc
 )
@@ -44,12 +45,13 @@ add_executable(homm5-widescreen-patch WIN32
     src/games.cpp
     src/sha256.cpp
     src/hook_install.cpp
+    src/pak_install.cpp
     src/app.rc
     src/app.manifest
 )
 target_compile_definitions(homm5-widescreen-patch PRIVATE UNICODE _UNICODE WIN32_LEAN_AND_MEAN NOMINMAX)
 target_compile_options(homm5-widescreen-patch PRIVATE /W4 /permissive- /utf-8)
-target_link_libraries(homm5-widescreen-patch PRIVATE bcrypt comctl32 version)
+target_link_libraries(homm5-widescreen-patch PRIVATE homm5-data bcrypt comctl32 version)
 
 add_dependencies(homm5-widescreen-patch homm5-widescreen-hook)
 file(GENERATE OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/hook_dll_$<CONFIG>.rc
@@ -60,11 +62,18 @@ add_library(homm5-data STATIC
     src/data/pak.cpp
     src/data/recipe.cpp
     src/data/data_build.cpp
+    src/data/game_paks.cpp
+    src/data/font_build.cpp
+    src/data/intro_skip.cpp
 )
 target_compile_definitions(homm5-data PRIVATE UNICODE _UNICODE WIN32_LEAN_AND_MEAN NOMINMAX)
 target_compile_options(homm5-data PRIVATE /W4 /permissive- /utf-8)
-target_link_libraries(homm5-data PUBLIC zlib_minizip)
+target_link_libraries(homm5-data PUBLIC zlib_minizip gdi32)
 
 add_executable(homm5-data-build tools/data_build_main.cpp)
 target_compile_options(homm5-data-build PRIVATE /W4 /permissive- /utf-8)
 target_link_libraries(homm5-data-build PRIVATE homm5-data)
+
+add_executable(homm5-font-build tools/font_build_main.cpp)
+target_compile_options(homm5-font-build PRIVATE /W4 /permissive- /utf-8)
+target_link_libraries(homm5-font-build PRIVATE homm5-data)

@@ -1,4 +1,5 @@
 #include "hooks.h"
+#include "own_pak.h"
 #include "virtual_screen.h"
 
 #include <windows.h>
@@ -55,6 +56,8 @@ constexpr std::array<std::array<uint8_t, 5>, 2> kFadeCallsOriginal = {{
     {0xE8, 0xE3, 0x11, 0x00, 0x00},
     {0xE8, 0x2D, 0x0C, 0x00, 0x00},
 }};
+
+constexpr VfsFactorySite kVfsFactory = {0x6ED274, {0xE8, 0x47, 0x06, 0x30, 0x00}, 0x9ED8C0, false, 0x9EE3D0, "dataa1"};
 
 const BOOL* g_windowed;
 const HWND* g_mainHwnd;
@@ -181,6 +184,7 @@ bool InstallHof21(const Image& image, const Options& options, std::string& log) 
     }
     Report(log, "widescreen", widescreen);
 
+    InstallOwnPak(image, kVfsFactory, log);
     if (options.skipFade) InstallSkipFade(image, kFadeCalls, kFadeCallsOriginal, log);
     return true;
 }

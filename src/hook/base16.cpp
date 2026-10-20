@@ -1,4 +1,5 @@
 #include "hooks.h"
+#include "own_pak.h"
 #include "virtual_screen.h"
 
 #include <array>
@@ -29,6 +30,8 @@ constexpr std::array<std::array<uint8_t, 5>, 2> kFadeCallsOriginal = {{
     {0xE8, 0x18, 0x15, 0x00, 0x00},
     {0xE8, 0x9E, 0x0E, 0x00, 0x00},
 }};
+
+constexpr VfsFactorySite kVfsFactory = {0x6C510C, {0xE8, 0x1F, 0x1A, 0x34, 0x00}, 0xA06B30, true, 0xA07680, "datals"};
 
 float* g_virtualW;
 float* g_virtualH;
@@ -78,6 +81,7 @@ bool InstallBase16(const Image& image, const Options& options, std::string& log)
         log += "  widescreen: unexpected bytes, skipped\r\n";
     }
 
+    InstallOwnPak(image, kVfsFactory, log);
     if (options.skipFade) InstallSkipFade(image, kFadeCalls, kFadeCallsOriginal, log);
     return true;
 }
