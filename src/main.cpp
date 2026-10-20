@@ -44,7 +44,7 @@ std::wstring ExeStatus(const Game& game) {
 
 std::wstring PatchStatus(const Game& game) {
     switch (QueryHook(game)) {
-        case HookState::Installed: return L"installed";
+        case HookState::Installed: return GamePakComplete(game, ReadSkipFade(game)) ? L"installed" : L"incomplete, run Install";
         case HookState::Foreign: return L"other dinput8.dll present";
         case HookState::NotInstalled: break;
     }
@@ -71,8 +71,8 @@ void FillGameList(HWND dialog) {
     AddColumn(list, 1, L"Store", scaled(50));
     AddColumn(list, 2, L"Language", scaled(70));
     AddColumn(list, 3, L"Executable", scaled(170));
-    AddColumn(list, 4, L"Patch", scaled(90));
-    AddColumn(list, 5, L"Folder", scaled(240));
+    AddColumn(list, 4, L"Patch", scaled(130));
+    AddColumn(list, 5, L"Folder", scaled(200));
 
     for (int row = 0; row < static_cast<int>(g_games.size()); ++row) {
         const Game& game = g_games[row];

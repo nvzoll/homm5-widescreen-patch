@@ -98,6 +98,12 @@ bool InstallGamePak(const Game& game, bool fonts, bool skipIntro, std::wstring& 
     return true;
 }
 
+bool GamePakComplete(const Game& game, bool skipIntro) {
+    const bool pakExpected = game.id != GameId::TribesOfTheEast || ReadFontsOption(game) || skipIntro;
+    if (pakExpected && !std::filesystem::exists(GamePakPath(game))) return false;
+    return !skipIntro || (std::filesystem::exists(VideoPath(game, kIntroClip)) && std::filesystem::exists(VideoPath(game, kIntroPlaylist)));
+}
+
 bool UninstallGamePak(const Game& game, std::wstring& error) {
     return DeleteIfPresent(GamePakPath(game), error) && UninstallIntroFiles(game, error);
 }
