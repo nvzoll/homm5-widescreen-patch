@@ -10,7 +10,7 @@ Currently only the [GOG version](https://www.gog.com/en/game/heroes_of_might_and
 
 - **Widescreen UI**. Keep UI spacing at any aspect ratio (virtual screen backported from ToE). Cutscenes and loading screen also have letterbox side bars on 16:9 as in ToE.
 - **Fullscreen option**. Adds Fullscreen checkbox to video settings.
-- **HoF windowed mode**. Fixes store version not having window frame when switched to windowed mode by editing config file.
+- **HoF windowed mode**. Fixes stock version not having window frame when switched to windowed mode.
 
 > [!NOTE]
 > Stock Tribes of the East already has widescreen support and windowed mode
@@ -18,13 +18,13 @@ Currently only the [GOG version](https://www.gog.com/en/game/heroes_of_might_and
 ## Optional features (all three games)
 
 - **Skip splash fade and intro**. Removes the 2 second fade to black effect before the splash screen and removes the intro videos (replaced with blank clip for correctness).
-- **Font fix**. Reading that much of Monotype Cursiva is insufferable. Mod renders body texts with Palatino Linotype.
+- **Font fix**. Reading that much of Monotype Corsiva is insufferable. This mod renders body texts with Palatino Linotype.
 
 ## Installation
 
 1. Close the games and extract the release zip.
 2. Copy `dinput8.dll` from the zip next to each `H5_Game.exe`: `bin\` and `bina1\` of Heroes V, and `bin\` of Tribes of the East.
-3. Run `homm5-widescreen-patch.exe`. If the games are under `Program Files`, run it as administrator. **Open folders** opens the folders from step 2. **Install** stays disabled until every detected game has the DLL.
+3. Run `homm5-widescreen-patch.exe`. If the games are under `Program Files`, run it as administrator. **Open folders** opens the folders so you just need to do Ctrl-V in each. **Install** stays disabled until every detected game has the DLL.
 4. Choose the options and click **Install**. Building the game data takes a few seconds per game.
 
 > [!WARNING]
