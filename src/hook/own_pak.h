@@ -17,4 +17,5 @@ struct VfsFactorySite {
 };
 
 // Mounts <game root>\<folder>\homm5-widescreen.pak right after the table, above every shipped pak.
-void InstallOwnPak(const Image& image, const VfsFactorySite& site, std::string& log);
+// False when the pak is missing or cannot be mounted.
+bool InstallOwnPak(const Image& image, const VfsFactorySite& site, std::string& log);

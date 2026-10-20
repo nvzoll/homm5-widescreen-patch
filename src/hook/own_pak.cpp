@@ -72,18 +72,23 @@ bool BuildPath(const char* folder) {
 
 }  // namespace
 
-void InstallOwnPak(const Image& image, const VfsFactorySite& site, std::string& log) {
+bool InstallOwnPak(const Image& image, const VfsFactorySite& site, std::string& log) {
     if (!image.Matches(site.call, site.original)) {
         log += "  own pak: unexpected bytes, skipped\r\n";
-        return;
+        return false;
     }
     if (!BuildPath(site.folder)) {
         log += "  own pak: cannot build the pak path, skipped\r\n";
-        return;
+        return false;
+    }
+    if (GetFileAttributesA(g_path) == INVALID_FILE_ATTRIBUTES) {
+        log += std::string("  own pak: ") + g_path + " missing (run the patcher's Install), skipped\r\n";
+        return false;
     }
     g_factory = reinterpret_cast<uintptr_t>(image.At<void>(site.factory));
     g_mountPattern = reinterpret_cast<MountPattern>(image.At<void>(site.mountPattern));
     const void* stub = site.factoryHasStackArg ? reinterpret_cast<const void*>(&FactoryWithStackArgStub) : reinterpret_cast<const void*>(&FactoryStub);
     image.WriteCall(site.call, stub, site.original.size());
     log += std::string("  own pak: ") + g_path + "\r\n";
+    return true;
 }

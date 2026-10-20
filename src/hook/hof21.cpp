@@ -173,7 +173,8 @@ bool InstallHof21(const Image& image, const Options& options, std::string& log) 
     }
     Report(log, "cursor offset", cursor);
 
-    const bool widescreen = image.Matches(kScreenSizeSetter, kScreenSizeSetterOriginal, kScreenSizeSetterAbs) &&
+    const bool pak = InstallOwnPak(image, kVfsFactory, log);
+    const bool widescreen = pak && image.Matches(kScreenSizeSetter, kScreenSizeSetterOriginal, kScreenSizeSetterAbs) &&
                             image.MatchesAll(kWidescreenEdits) && image.Matches(kRootRectSite, kRootRectOriginal) &&
                             image.MatchesAll(kMinimapEdits);
     if (widescreen) {
@@ -182,9 +183,12 @@ bool InstallHof21(const Image& image, const Options& options, std::string& log) 
         image.WriteCall(kRootRectSite, reinterpret_cast<const void*>(&PlaceRootRectStub), kRootRectOriginal.size());
         image.ApplyAll(kMinimapEdits);
     }
-    Report(log, "widescreen", widescreen);
+    if (pak) {
+        Report(log, "widescreen", widescreen);
+    } else {
+        log += "  widescreen: skipped, needs the pak\r\n";
+    }
 
-    InstallOwnPak(image, kVfsFactory, log);
     if (options.skipFade) InstallSkipFade(image, kFadeCalls, kFadeCallsOriginal, log);
     return true;
 }

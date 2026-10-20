@@ -533,9 +533,29 @@ constexpr std::array kInlinedTexts = {"UI/pwlscreen/MapDesc.txt", "UI/pwlscreen/
 constexpr std::array kSpacedTexts = {"UI/pwlscreen/ChooseBonus_Text.txt", "UI/pwlscreen/Loading.txt", "UI/pwlscreen/PressAnyKey.txt",
                                      "UI/pwlscreen/WaitForPlayers.txt", "UI/AdventureScreen/EnemyTurnBox/player_name_text.txt"};
 
+bool RequirePalatino(std::wstring& error) {
+    if (PalatinoInstalled()) return true;
+    error = std::wstring(kFace) + L" is not installed, so the fonts cannot be built. Uncheck Readable fonts.";
+    return false;
+}
+
 }  // namespace
 
+bool PalatinoInstalled() {
+    const HDC dc = CreateCompatibleDC(nullptr);
+    const HFONT font = CreateFontW(-32, 0, 0, 0, kWeight, FALSE, FALSE, FALSE, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
+                                   ANTIALIASED_QUALITY, DEFAULT_PITCH, kFace);
+    const HGDIOBJ previous = SelectObject(dc, font);
+    wchar_t face[LF_FACESIZE] = {};
+    GetTextFaceW(dc, LF_FACESIZE, face);
+    SelectObject(dc, previous);
+    DeleteObject(font);
+    DeleteDC(dc);
+    return _wcsicmp(face, kFace) == 0;
+}
+
 bool BuildBodyFonts(const PakArchives& game, std::vector<PakFile>& files, std::wstring& error) {
+    if (!RequirePalatino(error)) return false;
     Templates templates(game, error);
     for (const char* name : kBodyFonts) {
         FontTemplate font;
@@ -550,6 +570,7 @@ bool BuildBodyFonts(const PakArchives& game, std::vector<PakFile>& files, std::w
 }
 
 bool BuildBriefFonts(const PakArchives& game, std::vector<PakFile>& files, std::wstring& error) {
+    if (!RequirePalatino(error)) return false;
     Templates templates(game, error);
     const char* const tablePath = "UI/Fonts/FontsTable.(FontsTable).xdb";
     auto table = templates.ReadText(tablePath);

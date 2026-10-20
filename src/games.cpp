@@ -73,6 +73,14 @@ std::wstring_view GameName(GameId id) {
     return L"?";
 }
 
+bool IsEnglish(const Game& game) {
+    return _wcsicmp(game.language.c_str(), L"english") == 0;
+}
+
+bool IsSupported(const Game& game) {
+    return game.build && IsEnglish(game);
+}
+
 std::vector<Game> DetectGames() {
     std::vector<Game> games;
     DetectGog(games);

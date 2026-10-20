@@ -34,8 +34,27 @@ bool Fail(std::wstring& error, const std::filesystem::path& path) {
 }
 
 bool DeleteIfPresent(const std::filesystem::path& path, std::wstring& error) {
-    if (DeleteFileW(path.c_str()) || GetLastError() == ERROR_FILE_NOT_FOUND) return true;
+    if (DeleteFileW(path.c_str()) || GetLastError() == ERROR_FILE_NOT_FOUND || GetLastError() == ERROR_PATH_NOT_FOUND) return true;
     return Fail(error, path);
+}
+
+const wchar_t* BuildTag(GameId id) {
+    switch (id) {
+        case GameId::Base: return L"base16";
+        case GameId::HammersOfFate: return L"hof21";
+        case GameId::TribesOfTheEast: break;
+    }
+    return L"toe31";
+}
+
+bool DeleteFallbackLog(const Game& game, std::wstring& error) {
+    wchar_t localAppData[MAX_PATH];
+    const DWORD length = GetEnvironmentVariableW(L"LOCALAPPDATA", localAppData, MAX_PATH);
+    if (length == 0 || length >= MAX_PATH) return true;
+    const auto folder = std::filesystem::path(localAppData) / LOG_FALLBACK_FOLDER;
+    if (!DeleteIfPresent(folder / FallbackLogName(BuildTag(game.id)), error)) return false;
+    RemoveDirectoryW(folder.c_str());
+    return true;
 }
 
 std::wstring ProductNameOf(const std::filesystem::path& path) {
@@ -84,5 +103,6 @@ bool WriteHookOptions(const Game& game, bool skipFade, std::wstring& error) {
 
 bool UninstallHook(const Game& game, std::wstring& error) {
     if (QueryHook(game) == HookState::Installed && !DeleteIfPresent(HookDllPath(game), error)) return false;
-    return DeleteIfPresent(InGameDir(game, kIni), error) && DeleteIfPresent(InGameDir(game, kLog), error);
+    return DeleteIfPresent(InGameDir(game, kIni), error) && DeleteIfPresent(InGameDir(game, kLog), error) &&
+           DeleteFallbackLog(game, error);
 }

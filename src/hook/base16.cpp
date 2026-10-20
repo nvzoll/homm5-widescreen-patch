@@ -69,7 +69,9 @@ bool InstallBase16(const Image& image, const Options& options, std::string& log)
     if (image.timestamp() != kTimestamp || image.sizeOfImage() != kSizeOfImage) return false;
     log += "Heroes V 1.6 (GOG)\r\n";
 
-    if (image.Matches(kSetVirtualScreenHook, kSetVirtualScreenOriginal, kSetVirtualScreenAbs)) {
+    if (!InstallOwnPak(image, kVfsFactory, log)) {
+        log += "  widescreen: skipped, needs the pak\r\n";
+    } else if (image.Matches(kSetVirtualScreenHook, kSetVirtualScreenOriginal, kSetVirtualScreenAbs)) {
         g_virtualW = image.At<float>(kVirtualW);
         g_virtualH = image.At<float>(kVirtualH);
         g_designW = image.At<const float>(kDesignW);
@@ -81,7 +83,6 @@ bool InstallBase16(const Image& image, const Options& options, std::string& log)
         log += "  widescreen: unexpected bytes, skipped\r\n";
     }
 
-    InstallOwnPak(image, kVfsFactory, log);
     if (options.skipFade) InstallSkipFade(image, kFadeCalls, kFadeCallsOriginal, log);
     return true;
 }

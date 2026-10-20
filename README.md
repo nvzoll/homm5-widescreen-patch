@@ -2,7 +2,7 @@
 
 This mod adds proper windowed mode to Heroes of Might and Magic V & Hammers of Fate and realigns UI without stretching on 16:9 resolutions. Also, for all three games it optionally removes fade-to-black effect on launch + removes intro videos. It also optionally replaces Monotype Corsiva in regular text (non-headers) with Palatino Linotype.
 
-Currently only the [GOG version](https://www.gog.com/en/game/heroes_of_might_and_magic_5_bundle) is supported.
+Currently only the English [GOG version](https://www.gog.com/en/game/heroes_of_might_and_magic_5_bundle) is supported.
 
 ![Hammers of Fate in a widescreen window: unstretched UI, HUD anchored to the screen edges, Palatino body text](docs/screenshot-hof.png)
 
@@ -38,9 +38,13 @@ Click **Uninstall** to remove everything the patch installed. Running Install ag
 - Extra `.pak` archive per game contains the files needed for layout fixes and the new font files, as well as blank intro vid pointer.
 
 > [!NOTE]
-> Some antiviruses may flag the dll because of hot patching. This mod does not contain any malware.
+> Some antiviruses may flag the dll because of hot patching.
+>
+> The exe and the DLL are not signed. Windows SmartScreen will show "Windows protected your PC" for the patcher. With Smart App Control turned on, Windows may block the unsigned `dinput8.dll` and the game won't start.
+>
+> This mod does not contain any malware & only Win11 setup was ever tested.
 
-No Ubisoft or Linotype assets is shipped, everything game-specific is built from game files on your machine.
+No Ubisoft or Linotype assets are shipped, everything game-specific is built from game files on your machine.
 
 Installed files:
 
@@ -50,11 +54,11 @@ Installed files:
 | `datals\`, `dataa1\` (ToE: `data\`) | `homm5-widescreen.pak` |
 | `video\` (with "Skip intro") | `homm5-intro.xml`, `homm5-blank.ogg` |
 
-`homm5-widescreen.log` logs what the DLL did at the last game run.
+`homm5-widescreen.log` logs what the DLL did at the last game run. If the game folder is read-only for the game (e.g. under `Program Files`), the log goes to `%LOCALAPPDATA%\homm5-widescreen\` instead.
 
 ## Languages
 
-Everything is generated from the installed game, so every language should work. In theory. At the moment, only EN version was tested.
+Only English is supported. The patcher skips games installed in another language.
 
 If you want to switch the language in installed game, uninstall the mod first.
 

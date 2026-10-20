@@ -1,3 +1,4 @@
+#include "data/font_build.h"
 #include "games.h"
 #include "hook_install.h"
 #include "pak_install.h"
@@ -17,9 +18,11 @@ namespace {
 
 constexpr UINT kLogMessage = WM_APP + 1;  // lparam: heap std::wstring*, owned by the receiver
 constexpr UINT kJobDoneMessage = WM_APP + 2;
+constexpr UINT kStartupCheckMessage = WM_APP + 3;
 constexpr UINT_PTR kRecheckTimer = 1;
 
 std::vector<Game> g_games;
+bool g_palatino = false;
 std::thread g_job;
 
 void AppendLog(HWND dialog, const std::wstring& line) {
@@ -45,6 +48,8 @@ std::wstring ExeStatus(const Game& game) {
 }
 
 std::wstring PatchStatus(const Game& game) {
+    if (game.build && !IsEnglish(game)) return L"English only";
+    if (!game.build) return QueryHook(game) == HookState::Installed ? L"unsupported, run Uninstall" : L"unsupported";
     switch (QueryHook(game)) {
         case HookState::Installed: return GamePakComplete(game, ReadSkipFade(game)) ? L"installed" : L"DLL in place, run Install";
         case HookState::Foreign: return L"other dinput8.dll present";
@@ -103,14 +108,14 @@ void RefreshPatchColumn(HWND dialog) {
 
 bool AnySupported() {
     for (const Game& game : g_games) {
-        if (game.build) return true;
+        if (IsSupported(game)) return true;
     }
     return false;
 }
 
 bool AllSupportedHaveHook() {
     for (const Game& game : g_games) {
-        if (game.build && QueryHook(game) != HookState::Installed) return false;
+        if (IsSupported(game) && QueryHook(game) != HookState::Installed) return false;
     }
     return true;
 }
@@ -118,7 +123,7 @@ bool AllSupportedHaveHook() {
 void EnableControls(HWND dialog, bool enabled) {
     const bool supported = enabled && AnySupported();
     EnableWindow(GetDlgItem(dialog, IDC_SKIP_INTRO), supported);
-    EnableWindow(GetDlgItem(dialog, IDC_FONTS), supported);
+    EnableWindow(GetDlgItem(dialog, IDC_FONTS), supported && g_palatino);
     EnableWindow(GetDlgItem(dialog, IDC_OPEN_FOLDERS), supported);
     EnableWindow(GetDlgItem(dialog, IDC_INSTALL), supported && AllSupportedHaveHook());
     EnableWindow(GetDlgItem(dialog, IDC_UNINSTALL), enabled && !g_games.empty());
@@ -128,7 +133,7 @@ void InitOptions(HWND dialog) {
     bool skipFade = true;
     bool fonts = true;
     for (const Game& game : g_games) {
-        if (!game.build) continue;
+        if (!IsSupported(game)) continue;
         if (QueryHook(game) == HookState::Installed) {
             skipFade = ReadSkipFade(game);
             fonts = ReadFontsOption(game);
@@ -136,7 +141,7 @@ void InitOptions(HWND dialog) {
     }
     CheckDlgButton(dialog, IDC_WIDESCREEN, BST_CHECKED);
     CheckDlgButton(dialog, IDC_SKIP_INTRO, skipFade ? BST_CHECKED : BST_UNCHECKED);
-    CheckDlgButton(dialog, IDC_FONTS, fonts ? BST_CHECKED : BST_UNCHECKED);
+    CheckDlgButton(dialog, IDC_FONTS, fonts && g_palatino ? BST_CHECKED : BST_UNCHECKED);
     EnableControls(dialog, true);
 }
 
@@ -145,6 +150,10 @@ void Install(HWND dialog, bool skipFade, bool fonts) {
         const std::wstring name(GameName(game.id));
         if (!game.build) {
             PostLog(dialog, name + L": skipped, " + ExeStatus(game) + L" (only unmodified store builds are supported)");
+            continue;
+        }
+        if (!IsEnglish(game)) {
+            PostLog(dialog, name + L": skipped, game language is " + game.language + L" (only English is supported)");
             continue;
         }
         PostLog(dialog, name + L": building game data...");
@@ -192,17 +201,29 @@ void ReportGames(HWND dialog) {
     if (!AnySupported() || AllSupportedHaveHook()) return;
     AppendLog(dialog, L"Install unlocks once " + PackagedHookDll().wstring() + L" is copied into these folders (Open folders):");
     for (const Game& game : g_games) {
-        if (game.build && QueryHook(game) != HookState::Installed) AppendLog(dialog, L"  " + game.exe.parent_path().wstring());
+        if (IsSupported(game) && QueryHook(game) != HookState::Installed) AppendLog(dialog, L"  " + game.exe.parent_path().wstring());
     }
 }
 
+void ReportPalatino(HWND dialog) {
+    if (!g_palatino) AppendLog(dialog, L"Palatino Linotype is not installed: Readable fonts is unavailable.");
+}
+
+void WarnIfNotExtracted(HWND dialog) {
+    if (!AnySupported() || AllSupportedHaveHook() || std::filesystem::exists(PackagedHookDll())) return;
+    const std::wstring text = L"dinput8.dll is not next to the patcher (" + PackagedHookDll().parent_path().wstring() +
+                              L").\n\nIf you started the patcher from inside the zip, close it, extract the whole zip to a folder, and run it from there.";
+    AppendLog(dialog, L"dinput8.dll not found next to the patcher; extract the whole zip first.");
+    MessageBoxW(dialog, text.c_str(), L"" PRODUCT_NAME, MB_OK | MB_ICONWARNING);
+}
+
 void OpenFolders(HWND dialog) {
-    const std::wstring select = L"/select,\"" + PackagedHookDll().wstring() + L"\"";
-    ShellExecuteW(dialog, L"open", L"explorer.exe", select.c_str(), nullptr, SW_SHOWNORMAL);
+    if (std::filesystem::exists(PackagedHookDll())) {
+        const std::wstring select = L"/select,\"" + PackagedHookDll().wstring() + L"\"";
+        ShellExecuteW(dialog, L"open", L"explorer.exe", select.c_str(), nullptr, SW_SHOWNORMAL);
+    }
     for (const Game& game : g_games) {
-        if (game.build && QueryHook(game) != HookState::Installed) {
-            ShellExecuteW(dialog, L"open", game.exe.parent_path().c_str(), nullptr, nullptr, SW_SHOWNORMAL);
-        }
+        if (IsSupported(game)) ShellExecuteW(dialog, L"open", game.exe.parent_path().c_str(), nullptr, nullptr, SW_SHOWNORMAL);
     }
 }
 
@@ -210,10 +231,16 @@ INT_PTR CALLBACK DialogProc(HWND dialog, UINT message, WPARAM wparam, LPARAM lpa
     switch (message) {
         case WM_INITDIALOG:
             g_games = DetectGames();
+            g_palatino = PalatinoInstalled();
             FillGameList(dialog);
             ReportGames(dialog);
+            ReportPalatino(dialog);
             InitOptions(dialog);
             SetTimer(dialog, kRecheckTimer, 1000, nullptr);
+            PostMessageW(dialog, kStartupCheckMessage, 0, 0);
+            return TRUE;
+        case kStartupCheckMessage:
+            WarnIfNotExtracted(dialog);
             return TRUE;
         case WM_TIMER:
             if (!g_job.joinable()) {
