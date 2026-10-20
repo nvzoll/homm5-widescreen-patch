@@ -54,9 +54,6 @@ target_compile_options(homm5-widescreen-patch PRIVATE /W4 /permissive- /utf-8)
 target_link_libraries(homm5-widescreen-patch PRIVATE homm5-data bcrypt comctl32 version)
 
 add_dependencies(homm5-widescreen-patch homm5-widescreen-hook)
-file(GENERATE OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/hook_dll_$<CONFIG>.rc
-     CONTENT "HOOK_DLL RCDATA \"$<TARGET_FILE:homm5-widescreen-hook>\"\n")
-target_sources(homm5-widescreen-patch PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/hook_dll_$<CONFIG>.rc)
 
 add_library(homm5-data STATIC
     src/data/pak.cpp

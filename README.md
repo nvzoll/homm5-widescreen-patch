@@ -22,9 +22,10 @@ Currently only the [GOG version](https://www.gog.com/en/game/heroes_of_might_and
 
 ## Installation
 
-1. Close the games.
-2. Run `homm5-widescreen-patch.exe`. If the games are under `Program Files`, run it as administrator.
-3. Choose the options and click **Install**. Building the game data takes a few seconds per game.
+1. Close the games and extract the release zip.
+2. Copy `dinput8.dll` from the zip next to each `H5_Game.exe`: `bin\` and `bina1\` of Heroes V, and `bin\` of Tribes of the East.
+3. Run `homm5-widescreen-patch.exe`. If the games are under `Program Files`, run it as administrator. **Open folders** opens the folders from step 2. **Install** stays disabled until every detected game has the DLL.
+4. Choose the options and click **Install**. Building the game data takes a few seconds per game.
 
 > [!WARNING]
 > For some reason, HoMM5 games persist UI layout in save game files. You need to start a mission / custom map anew to see UI fix working.
@@ -66,7 +67,7 @@ cmake -S . -B build -G "Visual Studio 17 2022" -A Win32
 cmake --build build --config Release
 ```
 
-Builds single exe with DLL, recipes and the clip embedded.
+Builds `homm5-widescreen-patch.exe` (recipes and the clip embedded) and `dinput8.dll`.
 
 Dev tools:
 - `homm5-data-build`: rebuilds the layout pak from a recipe, for byte-for-byte checks.

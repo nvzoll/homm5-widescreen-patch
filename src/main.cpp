@@ -6,6 +6,7 @@
 
 #include <windows.h>
 #include <commctrl.h>
+#include <shellapi.h>
 
 #include <memory>
 #include <string>
@@ -16,6 +17,7 @@ namespace {
 
 constexpr UINT kLogMessage = WM_APP + 1;  // lparam: heap std::wstring*, owned by the receiver
 constexpr UINT kJobDoneMessage = WM_APP + 2;
+constexpr UINT_PTR kRecheckTimer = 1;
 
 std::vector<Game> g_games;
 std::thread g_job;
@@ -44,11 +46,11 @@ std::wstring ExeStatus(const Game& game) {
 
 std::wstring PatchStatus(const Game& game) {
     switch (QueryHook(game)) {
-        case HookState::Installed: return GamePakComplete(game, ReadSkipFade(game)) ? L"installed" : L"incomplete, run Install";
+        case HookState::Installed: return GamePakComplete(game, ReadSkipFade(game)) ? L"installed" : L"DLL in place, run Install";
         case HookState::Foreign: return L"other dinput8.dll present";
         case HookState::NotInstalled: break;
     }
-    return L"not installed";
+    return L"copy dinput8.dll";
 }
 
 void AddColumn(HWND list, int index, const wchar_t* title, int width) {
@@ -91,7 +93,12 @@ void FillGameList(HWND dialog) {
 
 void RefreshPatchColumn(HWND dialog) {
     HWND list = GetDlgItem(dialog, IDC_GAMES);
-    for (int row = 0; row < static_cast<int>(g_games.size()); ++row) SetCell(list, row, 4, PatchStatus(g_games[row]));
+    for (int row = 0; row < static_cast<int>(g_games.size()); ++row) {
+        const std::wstring status = PatchStatus(g_games[row]);
+        wchar_t shown[64] = {};
+        ListView_GetItemText(list, row, 4, shown, static_cast<int>(std::size(shown)));
+        if (status != shown) SetCell(list, row, 4, status);
+    }
 }
 
 bool AnySupported() {
@@ -101,11 +108,19 @@ bool AnySupported() {
     return false;
 }
 
+bool AllSupportedHaveHook() {
+    for (const Game& game : g_games) {
+        if (game.build && QueryHook(game) != HookState::Installed) return false;
+    }
+    return true;
+}
+
 void EnableControls(HWND dialog, bool enabled) {
     const bool supported = enabled && AnySupported();
     EnableWindow(GetDlgItem(dialog, IDC_SKIP_INTRO), supported);
     EnableWindow(GetDlgItem(dialog, IDC_FONTS), supported);
-    EnableWindow(GetDlgItem(dialog, IDC_INSTALL), supported);
+    EnableWindow(GetDlgItem(dialog, IDC_OPEN_FOLDERS), supported);
+    EnableWindow(GetDlgItem(dialog, IDC_INSTALL), supported && AllSupportedHaveHook());
     EnableWindow(GetDlgItem(dialog, IDC_UNINSTALL), enabled && !g_games.empty());
 }
 
@@ -134,7 +149,7 @@ void Install(HWND dialog, bool skipFade, bool fonts) {
         }
         PostLog(dialog, name + L": building game data...");
         std::wstring error;
-        const bool ok = InstallHook(game, skipFade, error) && InstallGamePak(game, fonts, skipFade, error);
+        const bool ok = WriteHookOptions(game, skipFade, error) && InstallGamePak(game, fonts, skipFade, error);
         PostLog(dialog, name + (ok ? L": installed" : L": FAILED, " + error));
     }
 }
@@ -174,6 +189,21 @@ void ReportGames(HWND dialog) {
         AppendLog(dialog, std::wstring(GameName(game.id)) + L" (" + game.store + package + L"): " + game.exe.wstring());
         AppendLog(dialog, L"  sha256 " + Widen(game.exeSha256) + L" - " + ExeStatus(game));
     }
+    if (!AnySupported() || AllSupportedHaveHook()) return;
+    AppendLog(dialog, L"Install unlocks once " + PackagedHookDll().wstring() + L" is copied into these folders (Open folders):");
+    for (const Game& game : g_games) {
+        if (game.build && QueryHook(game) != HookState::Installed) AppendLog(dialog, L"  " + game.exe.parent_path().wstring());
+    }
+}
+
+void OpenFolders(HWND dialog) {
+    const std::wstring select = L"/select,\"" + PackagedHookDll().wstring() + L"\"";
+    ShellExecuteW(dialog, L"open", L"explorer.exe", select.c_str(), nullptr, SW_SHOWNORMAL);
+    for (const Game& game : g_games) {
+        if (game.build && QueryHook(game) != HookState::Installed) {
+            ShellExecuteW(dialog, L"open", game.exe.parent_path().c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+        }
+    }
 }
 
 INT_PTR CALLBACK DialogProc(HWND dialog, UINT message, WPARAM wparam, LPARAM lparam) {
@@ -183,6 +213,14 @@ INT_PTR CALLBACK DialogProc(HWND dialog, UINT message, WPARAM wparam, LPARAM lpa
             FillGameList(dialog);
             ReportGames(dialog);
             InitOptions(dialog);
+            SetTimer(dialog, kRecheckTimer, 1000, nullptr);
+            return TRUE;
+        case WM_TIMER:
+            if (!g_job.joinable()) {
+                RefreshPatchColumn(dialog);
+                const bool unlocked = AnySupported() && AllSupportedHaveHook();
+                if (unlocked != (IsWindowEnabled(GetDlgItem(dialog, IDC_INSTALL)) != FALSE)) EnableControls(dialog, true);
+            }
             return TRUE;
         case kLogMessage: {
             const std::unique_ptr<std::wstring> line(reinterpret_cast<std::wstring*>(lparam));
@@ -203,6 +241,9 @@ INT_PTR CALLBACK DialogProc(HWND dialog, UINT message, WPARAM wparam, LPARAM lpa
                     StartJob(dialog, L"Starting installation...", [dialog, skipFade, fonts] { Install(dialog, skipFade, fonts); });
                     return TRUE;
                 }
+                case IDC_OPEN_FOLDERS:
+                    OpenFolders(dialog);
+                    return TRUE;
                 case IDC_UNINSTALL:
                     StartJob(dialog, L"Starting uninstallation...", [dialog] { Uninstall(dialog); });
                     return TRUE;

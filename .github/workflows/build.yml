@@ -19,9 +19,15 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: homm5-widescreen-patch
-          path: build/Release/homm5-widescreen-patch.exe
+          path: |
+            build/Release/homm5-widescreen-patch.exe
+            build/Release/dinput8.dll
+      - name: Package
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        run: Compress-Archive -Path build/Release/homm5-widescreen-patch.exe, build/Release/dinput8.dll -DestinationPath homm5-widescreen-patch.zip
       - name: Draft release
         if: startsWith(github.ref, 'refs/tags/v')
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "${{ github.ref_name }}" build/Release/homm5-widescreen-patch.exe --draft --verify-tag --title "${{ github.ref_name }}" --generate-notes
+        run: gh release create "${{ github.ref_name }}" homm5-widescreen-patch.zip --draft --verify-tag --title "${{ github.ref_name }}" --generate-notes
