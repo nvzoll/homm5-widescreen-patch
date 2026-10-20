@@ -1,8 +1,78 @@
 # HoMM5 Widescreen Patch
 
-This mod adds proper windowed mode to HoMM5/Hammers of Fate and realigns UI without stretching on 16:9 resolutions. Also, for all three games it optionally removes fade-to-black effect on launch + removes intro videos. It also optionally replaces Monotype Corsiva in regular text (non-headers) with Palatino Linotype.
+This mod adds proper windowed mode to Heroes of Might and Magic V & Hammers of Fate and realigns UI without stretching on 16:9 resolutions. Also, for all three games it optionally removes fade-to-black effect on launch + removes intro videos. It also optionally replaces Monotype Corsiva in regular text (non-headers) with Palatino Linotype.
 
 Currently only the [GOG version](https://www.gog.com/en/game/heroes_of_might_and_magic_5_bundle) is supported.
+
+![Hammers of Fate in a widescreen window: unstretched UI, HUD anchored to the screen edges, Palatino body text](docs/screenshot-hof.png)
+
+## Features (Heroes V + Hammers of Fate)
+
+- **Widescreen UI**. Keep UI spacing at any aspect ratio (virtual screen backported from ToE). Cutscenes and loading screen also have letterbox side bars on 16:9 as in ToE.
+- **Fullscreen option**. Adds Fullscreen checkbox to video settings.
+- **HoF windowed mode**. Fixes store version not having window frame when switched to windowed mode by editing config file.
+
+> [!NOTE]
+> Stock Tribes of the East already has widescreen support and windowed mode
+
+## Optional features (all three games)
+
+- **Skip splash fade and intro**. Removes the 2 second fade to black effect before the splash screen and removes the intro videos (replaced with blank clip for correctness).
+- **Font fix**. Reading that much of Monotype Cursiva is insufferable. Mod renders body texts with Palatino Linotype.
+
+## Installation
+
+1. Close the games.
+2. Run `homm5-widescreen-patch.exe`. If the games are under `Program Files`, run it as administrator.
+3. Choose the options and click **Install**. Building the game data takes a few seconds per game.
+
+> [!WARNING]
+> For some reason, HoMM5 games persist UI layout in save game files. You need to start a mission / custom map anew to see UI fix working.
+
+Click **Uninstall** to remove everything the patch installed. Running Install again with different options rebuilds the files.
+
+## How it works
+
+- DLL hook via `dinput8.dll` next to `H5_Game.exe` patches game memory at startup. DirectInput passed to the system DLL as usual. Original exe files are preserved.
+- Extra `.pak` archive per game contains the files needed for layout fixes and the new font files, as well as blank intro vid pointer.
+
+> [!NOTE]
+> Some antiviruses may flag the dll because of hot patching. This mod does not contain any malware.
+
+No Ubisoft or Linotype assets is shipped, everything game-specific is built from game files on your machine.
+
+Installed files:
+
+| Where | Files |
+|---|---|
+| `bin\`, `bina1\` (ToE: `bin\`) | `dinput8.dll`, `homm5-widescreen.ini`, `homm5-widescreen.log` (written by the DLL) |
+| `datals\`, `dataa1\` (ToE: `data\`) | `homm5-widescreen.pak` |
+| `video\` (with "Skip intro") | `homm5-intro.xml`, `homm5-blank.ogg` |
+
+`homm5-widescreen.log` logs what the DLL did at the last game run.
+
+## Languages
+
+Everything is generated from the installed game, so every language should work. In theory. At the moment, only EN version was tested.
+
+If you want to switch the language in installed game, uninstall the mod first.
+
+## Building
+
+Visual Studio 2022 (C++ desktop workload), CMake 3.24+, 32-bit target:
+
+```
+cmake -S . -B build -G "Visual Studio 17 2022" -A Win32
+cmake --build build --config Release
+```
+
+Builds single exe with DLL, recipes and the clip embedded.
+
+Dev tools:
+- `homm5-data-build`: rebuilds the layout pak from a recipe, for byte-for-byte checks.
+- `homm5-font-build`: builds the font paks from a game or from given paks.
+
+Third-party code: zlib 1.3.2 with its minizip (zlib licence).
 
 ## Implementation details
 
@@ -15,6 +85,6 @@ Trivia found on google suggests removing intro videos by editing intro.xml. That
 
 ## Credits
 
-Built by Opus 5.5, tested by me.
+Built with Opus 5.5.
 
 This mod was made possible by [REA: Reverse Engineer Anything](https://github.com/morluto/rea) skill set.
