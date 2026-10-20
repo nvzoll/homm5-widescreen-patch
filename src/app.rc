@@ -1,10 +1,11 @@
 #include <windows.h>
 #include <commctrl.h>
 #include "resource.h"
+#include "product.h"
 
 IDD_MAIN DIALOGEX 0, 0, 440, 270
 STYLE DS_SETFONT | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX
-CAPTION "HoMM5 Widescreen Patch"
+CAPTION PRODUCT_NAME
 FONT 9, "Segoe UI", 400, 0, 0x1
 BEGIN
     LTEXT           "Detected games:", -1, 7, 7, 120, 9
@@ -12,8 +13,8 @@ BEGIN
     GROUPBOX        "Options", -1, 7, 93, 426, 40
     LTEXT           "Widescreen layout and fixes are always installed.", -1, 15, 104, 300, 9
     AUTOCHECKBOX    "&Readable fonts (Palatino body text and loading screen)", IDC_FONTS, 15, 116, 200, 10, WS_DISABLED
-    AUTOCHECKBOX    "&Skip intro videos and splash fade", IDC_SKIP_INTRO, 225, 116, 200, 10, WS_DISABLED
-    PUSHBUTTON      "&Install", IDC_INSTALL, 327, 138, 50, 14, WS_DISABLED
-    PUSHBUTTON      "&Uninstall", IDC_UNINSTALL, 383, 138, 50, 14, WS_DISABLED
+    AUTOCHECKBOX    "&Skip intro videos and splash fade", IDC_SKIP_INTRO, 225, 116, 200, 10
+    PUSHBUTTON      "&Install", IDC_INSTALL, 327, 138, 50, 14
+    PUSHBUTTON      "&Uninstall", IDC_UNINSTALL, 383, 138, 50, 14
     EDITTEXT        IDC_LOG, 7, 158, 426, 105, ES_MULTILINE | ES_READONLY | ES_AUTOVSCROLL | WS_VSCROLL | WS_BORDER
 END

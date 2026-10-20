@@ -10,9 +10,9 @@
 namespace {
 
 constexpr std::array kKnownBuilds = {
-    KnownBuild{GameId::Base, L"GOG", L"1.6 (GOG 2.1 v3)", "820786b0f85c62ca96a1a5b18d03d60185047ae8dab09ef6f0b299e3abcfba7c"},
-    KnownBuild{GameId::HammersOfFate, L"GOG", L"2.1 (GOG 2.1 v3)", "c15cc3c68a5bd1f3111d7d2fda7ef7607dbe96d1aedadaf463b50cbe41b40730"},
-    KnownBuild{GameId::TribesOfTheEast, L"GOG", L"3.1 (GOG 3.1 v3)", "3eb6fce81071f48631360202d81d41c67b09d8b1807105b1f22c402e15d16268"},
+    KnownBuild{GameId::Base, L"GOG", L"1.6", "820786b0f85c62ca96a1a5b18d03d60185047ae8dab09ef6f0b299e3abcfba7c"},
+    KnownBuild{GameId::HammersOfFate, L"GOG", L"2.1", "c15cc3c68a5bd1f3111d7d2fda7ef7607dbe96d1aedadaf463b50cbe41b40730"},
+    KnownBuild{GameId::TribesOfTheEast, L"GOG", L"3.1", "3eb6fce81071f48631360202d81d41c67b09d8b1807105b1f22c402e15d16268"},
 };
 
 struct GogProduct {
@@ -48,7 +48,8 @@ void DetectGog(std::vector<Game>& games) {
         const std::wstring key = std::wstring(L"SOFTWARE\\GOG.com\\Games\\") + product.id;
         const auto path = ReadRegistryString(HKEY_LOCAL_MACHINE, key, L"path");
         if (!path) continue;
-        const auto version = ReadRegistryString(HKEY_LOCAL_MACHINE, key, L"ver");
+        auto version = ReadRegistryString(HKEY_LOCAL_MACHINE, key, L"ver");
+        if (version && version->ends_with(L" GOG")) version->resize(version->size() - 4);
         const auto language = ReadRegistryString(HKEY_LOCAL_MACHINE, key, L"language");
         for (size_t i = 0; i < product.exeCount; ++i) {
             const auto& [id, relative] = product.exes[i];
