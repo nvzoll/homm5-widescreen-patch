@@ -10,4 +10,4 @@
 bool PalatinoInstalled();
 bool BuildBodyFonts(const PakArchives& game, std::vector<PakFile>& files, std::wstring& error);
 bool BuildBriefFonts(const PakArchives& game, std::vector<PakFile>& files, std::wstring& error);
-bool BuildLoadingScreenTexts(const PakArchives& game, std::vector<PakFile>& files, std::wstring& error);
+bool BuildRestyledTexts(const PakArchives& game, std::vector<PakFile>& files, std::wstring& error);

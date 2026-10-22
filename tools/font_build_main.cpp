@@ -44,7 +44,7 @@ int wmain(int argc, wchar_t** argv) {
         return 2;
     }
     ok = ok && Write(outDir / L"body.pak", BuildBodyFonts, game, error) && Write(outDir / L"brief.pak", BuildBriefFonts, game, error) &&
-         Write(outDir / L"pwl.pak", BuildLoadingScreenTexts, game, error);
+         Write(outDir / L"pwl.pak", BuildRestyledTexts, game, error);
     if (!ok) {
         std::fwprintf(stderr, L"failed: %ls\n", error.c_str());
         return 1;

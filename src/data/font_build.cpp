@@ -543,6 +543,11 @@ constexpr std::array kLoadingScreenTags = {
 // Base reverts overridden tag files on 2nd+ loads, so the fonts are inlined into these texts as well.
 constexpr std::array kInlinedTexts = {"UI/pwlscreen/MapDesc.txt", "UI/pwlscreen/MissionNumber.txt", "UI/pwlscreen/ProgressBarText.txt",
                                       "UI/AdventureScreen/EnemyTurnBox/player_name_text.txt"};
+constexpr std::array kLeftAlignedTexts = {"UI/pwlscreen/MapDesc.txt", "UI/CreatureInfo/CreatureInfoWindow/description_text.txt",
+                                          "UI/HeroScreen3/HeroBiography.txt", "UI/HeroScreen3/HeroDescriptionFormat.txt",
+                                          "UI/SaveLoad/SaveInfo/Definition/mapdescriptionvalue.txt",
+                                          "UI/TowerOfAstrologer/Captions/Description.txt", "UI/TownInfo/town-description.txt",
+                                          "Text/MissionObjectives/QuestDescNormalFormat_Text.txt"};
 constexpr std::array kSpacedTexts = {"UI/pwlscreen/ChooseBonus_Text.txt", "UI/pwlscreen/Loading.txt", "UI/pwlscreen/PressAnyKey.txt",
                                      "UI/pwlscreen/WaitForPlayers.txt", "UI/AdventureScreen/EnemyTurnBox/player_name_text.txt"};
 
@@ -613,34 +618,33 @@ bool BuildBriefFonts(const PakArchives& game, std::vector<PakFile>& files, std::
     return true;
 }
 
-bool BuildLoadingScreenTexts(const PakArchives& game, std::vector<PakFile>& files, std::wstring& error) {
+bool BuildRestyledTexts(const PakArchives& game, std::vector<PakFile>& files, std::wstring& error) {
     for (const Tag& tag : kLoadingScreenTags) {
         if (!tag.overridden) continue;
         std::string path = "UI/Consts/mlTags/";
         for (const wchar_t* c = tag.name; *c; ++c) path += static_cast<char>(*c);
         files.push_back({path + ".txt", Utf16(tag.expansion)});
     }
-    const auto read = [&](const char* name) -> std::optional<std::wstring> {
-        const auto data = game.Read(name, error);
-        return data ? FromUtf16(*data) : std::nullopt;
-    };
-    const auto spaced = [](std::string_view name) { return std::find(kSpacedTexts.begin(), kSpacedTexts.end(), name) != kSpacedTexts.end(); };
-    for (const char* name : kInlinedTexts) {
-        const auto text = read(name);
-        if (!error.empty()) return false;
-        if (!text) continue;
-        std::wstring inlined = *text;
-        for (const Tag& tag : kLoadingScreenTags) inlined = ReplaceAll(inlined, std::wstring(L"<") + tag.name + L">", tag.expansion);
-        if (spaced(name)) inlined = SingleSpaced(inlined);
-        if (inlined != *text) files.push_back({name, Utf16(inlined)});
+    const auto listed = [](const auto& list, std::string_view name) { return std::find(list.begin(), list.end(), name) != list.end(); };
+    std::vector<std::string_view> names(kInlinedTexts.begin(), kInlinedTexts.end());
+    for (const std::string_view name : kLeftAlignedTexts) {
+        if (!listed(names, name)) names.push_back(name);
     }
-    for (const char* name : kSpacedTexts) {
-        if (std::find(kInlinedTexts.begin(), kInlinedTexts.end(), std::string_view(name)) != kInlinedTexts.end()) continue;
-        const auto text = read(name);
+    for (const std::string_view name : kSpacedTexts) {
+        if (!listed(names, name)) names.push_back(name);
+    }
+    for (const std::string_view name : names) {
+        const auto data = game.Read(std::string(name), error);
         if (!error.empty()) return false;
+        const auto text = data ? FromUtf16(*data) : std::nullopt;
         if (!text) continue;
-        const std::wstring single = SingleSpaced(*text);
-        if (single != *text) files.push_back({name, Utf16(single)});
+        std::wstring restyled = *text;
+        if (listed(kInlinedTexts, name)) {
+            for (const Tag& tag : kLoadingScreenTags) restyled = ReplaceAll(restyled, std::wstring(L"<") + tag.name + L">", tag.expansion);
+        }
+        if (listed(kLeftAlignedTexts, name)) restyled = ReplaceAll(restyled, L"<justify>", L"<left>");
+        if (listed(kSpacedTexts, name)) restyled = SingleSpaced(restyled);
+        if (restyled != *text) files.push_back({std::string(name), Utf16(restyled)});
     }
     return true;
 }

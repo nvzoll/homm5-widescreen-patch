@@ -51,7 +51,7 @@ bool BuildGamePak(GameId game, const std::filesystem::path& root, std::span<cons
     uint32_t recipeDate = 0;
     if (!ApplyRecipe(recipe, archives, files, recipeDate, error)) return false;
     if (options.fonts && !(BuildBodyFonts(archives, files, error) && BuildBriefFonts(archives, files, error) &&
-                           BuildLoadingScreenTexts(archives, files, error))) {
+                           BuildRestyledTexts(archives, files, error))) {
         return false;
     }
     if (options.skipIntro && !BuildIntroSkip(archives, files, error)) return false;
