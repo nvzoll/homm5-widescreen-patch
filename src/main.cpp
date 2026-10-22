@@ -48,7 +48,7 @@ std::wstring ExeStatus(const Game& game) {
 }
 
 std::wstring PatchStatus(const Game& game) {
-    if (game.build && !IsEnglish(game)) return L"English only";
+    if (game.build && !IsLanguageSupported(game)) return L"language not supported";
     if (!game.build) return QueryHook(game) == HookState::Installed ? L"unsupported, run Uninstall" : L"unsupported";
     switch (QueryHook(game)) {
         case HookState::Installed: return GamePakComplete(game, ReadSkipFade(game)) ? L"installed" : L"DLL in place, run Install";
@@ -152,8 +152,8 @@ void Install(HWND dialog, bool skipFade, bool fonts) {
             PostLog(dialog, name + L": skipped, " + ExeStatus(game) + L" (only unmodified store builds are supported)");
             continue;
         }
-        if (!IsEnglish(game)) {
-            PostLog(dialog, name + L": skipped, game language is " + game.language + L" (only English is supported)");
+        if (!IsLanguageSupported(game)) {
+            PostLog(dialog, name + L": skipped, game language " + game.language + L" is not supported");
             continue;
         }
         PostLog(dialog, name + L": building game data...");

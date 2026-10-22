@@ -6,6 +6,7 @@
 #include <array>
 #include <cmath>
 #include <cstring>
+#include <cwchar>
 #include <optional>
 #include <regex>
 #include <span>
@@ -145,6 +146,11 @@ public:
 
     bool ok() const { return dc_ && font_ && bitmap_ && bits_; }
     const TEXTMETRICW& metrics() const { return metrics_; }
+
+    bool HasGlyph(wchar_t c) const {
+        WORD index = 0;
+        return GetGlyphIndicesW(dc_, &c, 1, &index, GGI_MARK_NONEXISTING_GLYPHS) == 1 && index != 0xFFFF;
+    }
 
     int Advance(wchar_t c) const {
         ABC abc{};
@@ -329,6 +335,13 @@ bool BuildFont(std::vector<uint8_t> metricsData, const std::vector<uint8_t>& tem
     std::vector<Plane> cells;
     std::vector<std::pair<int, int>> fields;
     for (const uint16_t c : m.chars) {
+        const bool control = c < 0x20 || (c >= 0x7F && c <= 0x9F);  // the templates fill unassigned cp1252 slots with C1 codes
+        if (!control && !font.HasGlyph(c)) {
+            wchar_t code[8];
+            swprintf_s(code, L"U+%04X", c);
+            error = std::wstring(code) + L" is not in " + kFace + L", so the fonts cannot be built. Uncheck Readable fonts.";
+            return false;
+        }
         const Plane coverage = Downsample(font.Render(c, margin * kSupersample, *baseline * kSupersample));
         const bool wordSpace = c == 0x20 || c == 0xA0;
         const int advance = RoundHalfEven(font.Advance(c) / static_cast<double>(kSupersample)) + style.tracking + (wordSpace ? style.wordSpacing : 0);
@@ -609,32 +622,25 @@ bool BuildLoadingScreenTexts(const PakArchives& game, std::vector<PakFile>& file
     }
     const auto read = [&](const char* name) -> std::optional<std::wstring> {
         const auto data = game.Read(name, error);
-        if (!data) {
-            if (error.empty()) error = Widen(name) + L": missing from the game data";
-            return std::nullopt;
-        }
-        auto text = FromUtf16(*data);
-        if (!text) error = Widen(name) + L": not UTF-16";
-        return text;
+        return data ? FromUtf16(*data) : std::nullopt;
     };
     const auto spaced = [](std::string_view name) { return std::find(kSpacedTexts.begin(), kSpacedTexts.end(), name) != kSpacedTexts.end(); };
     for (const char* name : kInlinedTexts) {
         const auto text = read(name);
-        if (!text) return false;
+        if (!error.empty()) return false;
+        if (!text) continue;
         std::wstring inlined = *text;
         for (const Tag& tag : kLoadingScreenTags) inlined = ReplaceAll(inlined, std::wstring(L"<") + tag.name + L">", tag.expansion);
-        if (inlined == *text) {
-            error = Widen(name) + L": no loading-screen tag";
-            return false;
-        }
         if (spaced(name)) inlined = SingleSpaced(inlined);
-        files.push_back({name, Utf16(inlined)});
+        if (inlined != *text) files.push_back({name, Utf16(inlined)});
     }
     for (const char* name : kSpacedTexts) {
         if (std::find(kInlinedTexts.begin(), kInlinedTexts.end(), std::string_view(name)) != kInlinedTexts.end()) continue;
         const auto text = read(name);
-        if (!text) return false;
-        files.push_back({name, Utf16(SingleSpaced(*text))});
+        if (!error.empty()) return false;
+        if (!text) continue;
+        const std::wstring single = SingleSpaced(*text);
+        if (single != *text) files.push_back({name, Utf16(single)});
     }
     return true;
 }

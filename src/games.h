@@ -26,6 +26,6 @@ struct Game {
 };
 
 std::wstring_view GameName(GameId id);
-bool IsEnglish(const Game& game);
+bool IsLanguageSupported(const Game& game);
 bool IsSupported(const Game& game);
 std::vector<Game> DetectGames();

@@ -58,7 +58,7 @@ Installed files:
 
 ## Languages
 
-Only English is supported. The patcher skips games installed in another language.
+Every GOG language except Simplified Chinese should work: Czech, English, French, German, Hungarian, Italian, Polish, Russian, Spanish. Only EN was tested though.
 
 If you want to switch the language in installed game, uninstall the mod first.
 
