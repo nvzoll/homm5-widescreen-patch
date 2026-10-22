@@ -23,7 +23,7 @@ std::span<const uint8_t> EmbeddedRecipe(GameId game) {
     switch (game) {
         case GameId::Base: return Resource(L"BASE16_RECIPE");
         case GameId::HammersOfFate: return Resource(L"HOF21_RECIPE");
-        case GameId::TribesOfTheEast: break;
+        case GameId::TribesOfTheEast: return Resource(L"TOE31_RECIPE");
     }
     return {};
 }
@@ -82,14 +82,12 @@ bool ReadFontsOption(const Game& game) {
 
 bool InstallGamePak(const Game& game, bool fonts, bool skipIntro, std::wstring& error) {
     const auto recipe = EmbeddedRecipe(game.id);
-    if (game.id != GameId::TribesOfTheEast && recipe.empty()) {
+    if (recipe.empty()) {
         error = L"the embedded layout recipe is missing from this build.";
         return false;
     }
     const GamePakOptions options{fonts, skipIntro};
-    const bool built = recipe.empty() && !fonts && !skipIntro ? DeleteIfPresent(GamePakPath(game), error)
-                                                              : BuildGamePak(game.id, game.root, recipe, options, GamePakPath(game), error);
-    if (!built) return false;
+    if (!BuildGamePak(game.id, game.root, recipe, options, GamePakPath(game), error)) return false;
     if (!(skipIntro ? InstallIntroFiles(game, error) : UninstallIntroFiles(game, error))) return false;
     if (!WritePrivateProfileStringW(L"options", L"fonts", fonts ? L"1" : L"0", IniPath(game).c_str())) {
         error = IniPath(game).wstring() + L": cannot write";
@@ -99,8 +97,7 @@ bool InstallGamePak(const Game& game, bool fonts, bool skipIntro, std::wstring& 
 }
 
 bool GamePakComplete(const Game& game, bool skipIntro) {
-    const bool pakExpected = game.id != GameId::TribesOfTheEast || ReadFontsOption(game) || skipIntro;
-    if (pakExpected && !std::filesystem::exists(GamePakPath(game))) return false;
+    if (!std::filesystem::exists(GamePakPath(game))) return false;
     return !skipIntro || (std::filesystem::exists(VideoPath(game, kIntroClip)) && std::filesystem::exists(VideoPath(game, kIntroPlaylist)));
 }
 

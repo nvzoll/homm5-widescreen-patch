@@ -22,4 +22,5 @@ END
 
 BASE16_RECIPE RCDATA "data/recipes/base16.recipe"
 HOF21_RECIPE RCDATA "data/recipes/hof21.recipe"
+TOE31_RECIPE RCDATA "data/recipes/toe31.recipe"
 BLANK_OGG RCDATA "data/blank.ogg"

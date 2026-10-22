@@ -1086,12 +1086,13 @@ extern int ZEXPORT unzGoToNextFile(unzFile file) {
     s=(unz64_s*)file;
     if (!s->current_file_ok)
         return UNZ_END_OF_LIST_OF_FILE;
-    if (s->gi.number_entry != 0xffff)    /* 2^16 files overflow hack */
-      if (s->num_file+1==s->gi.number_entry)
-        return UNZ_END_OF_LIST_OF_FILE;
-
+    /* The 16-bit entry count wraps past 65535 entries without a zip64 record (ToE data.pak); end at the central directory's end. */
     s->pos_in_central_dir += SIZECENTRALDIRITEM + s->cur_file_info.size_filename +
             s->cur_file_info.size_file_extra + s->cur_file_info.size_file_comment ;
+    if (s->pos_in_central_dir >= s->offset_central_dir + s->size_central_dir) {
+        s->current_file_ok = 0;
+        return UNZ_END_OF_LIST_OF_FILE;
+    }
     s->num_file++;
     err = unz64local_GetCurrentFileInfoInternal(file,&s->cur_file_info,
                                                &s->cur_file_info_internal,

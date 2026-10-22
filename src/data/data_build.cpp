@@ -36,10 +36,6 @@ bool CheckUnique(const std::vector<PakFile>& files, std::wstring& error) {
 
 bool BuildDataPak(GameId game, const std::filesystem::path& root, std::span<const uint8_t> recipe,
                   const std::filesystem::path& out, std::wstring& error) {
-    if (game == GameId::TribesOfTheEast) {
-        error = L"no data pak is needed for this game";
-        return false;
-    }
     PakArchives archives;
     std::vector<PakFile> files;
     uint32_t dosDateTime = 0;
@@ -53,7 +49,7 @@ bool BuildGamePak(GameId game, const std::filesystem::path& root, std::span<cons
     if (!MountGamePaks(game, root, archives, error)) return false;
     std::vector<PakFile> files;
     uint32_t recipeDate = 0;
-    if (!recipe.empty() && !ApplyRecipe(recipe, archives, files, recipeDate, error)) return false;
+    if (!ApplyRecipe(recipe, archives, files, recipeDate, error)) return false;
     if (options.fonts && !(BuildBodyFonts(archives, files, error) && BuildBriefFonts(archives, files, error) &&
                            BuildLoadingScreenTexts(archives, files, error))) {
         return false;
