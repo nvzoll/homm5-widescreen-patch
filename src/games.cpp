@@ -73,12 +73,12 @@ std::wstring_view GameName(GameId id) {
     return L"?";
 }
 
-bool IsLanguageSupported(const Game& game) {
+bool SupportsReadableFonts(const Game& game) {
     return _wcsnicmp(game.language.c_str(), L"chin", 4) != 0 && _wcsnicmp(game.language.c_str(), L"zh", 2) != 0;
 }
 
 bool IsSupported(const Game& game) {
-    return game.build && IsLanguageSupported(game);
+    return game.build != nullptr;
 }
 
 std::vector<Game> DetectGames() {

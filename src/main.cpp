@@ -48,7 +48,6 @@ std::wstring ExeStatus(const Game& game) {
 }
 
 std::wstring PatchStatus(const Game& game) {
-    if (game.build && !IsLanguageSupported(game)) return L"language not supported";
     if (!game.build) return QueryHook(game) == HookState::Installed ? L"unsupported, run Uninstall" : L"unsupported";
     switch (QueryHook(game)) {
         case HookState::Installed: return GamePakComplete(game, ReadSkipFade(game)) ? L"installed" : L"DLL in place, run Install";
@@ -113,6 +112,13 @@ bool AnySupported() {
     return false;
 }
 
+bool AnySupportsReadableFonts() {
+    for (const Game& game : g_games) {
+        if (IsSupported(game) && SupportsReadableFonts(game)) return true;
+    }
+    return false;
+}
+
 bool AllSupportedHaveHook() {
     for (const Game& game : g_games) {
         if (IsSupported(game) && QueryHook(game) != HookState::Installed) return false;
@@ -123,7 +129,7 @@ bool AllSupportedHaveHook() {
 void EnableControls(HWND dialog, bool enabled) {
     const bool supported = enabled && AnySupported();
     EnableWindow(GetDlgItem(dialog, IDC_SKIP_INTRO), supported);
-    EnableWindow(GetDlgItem(dialog, IDC_FONTS), supported && g_palatino);
+    EnableWindow(GetDlgItem(dialog, IDC_FONTS), supported && g_palatino && AnySupportsReadableFonts());
     EnableWindow(GetDlgItem(dialog, IDC_OPEN_FOLDERS), supported);
     EnableWindow(GetDlgItem(dialog, IDC_INSTALL), supported && AllSupportedHaveHook());
     EnableWindow(GetDlgItem(dialog, IDC_UNINSTALL), enabled && !g_games.empty());
@@ -136,12 +142,12 @@ void InitOptions(HWND dialog) {
         if (!IsSupported(game)) continue;
         if (QueryHook(game) == HookState::Installed) {
             skipFade = ReadSkipFade(game);
-            fonts = ReadFontsOption(game);
+            if (SupportsReadableFonts(game)) fonts = ReadFontsOption(game);
         }
     }
     CheckDlgButton(dialog, IDC_WIDESCREEN, BST_CHECKED);
     CheckDlgButton(dialog, IDC_SKIP_INTRO, skipFade ? BST_CHECKED : BST_UNCHECKED);
-    CheckDlgButton(dialog, IDC_FONTS, fonts && g_palatino ? BST_CHECKED : BST_UNCHECKED);
+    CheckDlgButton(dialog, IDC_FONTS, fonts && g_palatino && AnySupportsReadableFonts() ? BST_CHECKED : BST_UNCHECKED);
     EnableControls(dialog, true);
 }
 
@@ -152,13 +158,11 @@ void Install(HWND dialog, bool skipFade, bool fonts) {
             PostLog(dialog, name + L": skipped, " + ExeStatus(game) + L" (only unmodified store builds are supported)");
             continue;
         }
-        if (!IsLanguageSupported(game)) {
-            PostLog(dialog, name + L": skipped, game language " + game.language + L" is not supported");
-            continue;
-        }
+        const bool gameFonts = fonts && SupportsReadableFonts(game);
+        if (fonts && !gameFonts) PostLog(dialog, name + L": Readable fonts is not available for game language " + game.language);
         PostLog(dialog, name + L": building game data...");
         std::wstring error;
-        const bool ok = WriteHookOptions(game, skipFade, error) && InstallGamePak(game, fonts, skipFade, error);
+        const bool ok = WriteHookOptions(game, skipFade, error) && InstallGamePak(game, gameFonts, skipFade, error);
         PostLog(dialog, name + (ok ? L": installed" : L": FAILED, " + error));
     }
 }

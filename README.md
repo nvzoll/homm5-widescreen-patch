@@ -60,7 +60,9 @@ Installed files:
 
 ## Languages
 
-Every GOG language except Simplified Chinese should work: Czech, English, French, German, Hungarian, Italian, Polish, Russian, Spanish. Only EN was tested though.
+Fot font swap, every GOG language except Simplified Chinese should work: Czech, English, French, German, Hungarian, Italian, Polish, Russian, Spanish. Only EN was tested though.
+
+If installed games are in Chinese, font fix option is unavailable during install.
 
 If you want to switch the language in installed game, uninstall the mod first.
 
