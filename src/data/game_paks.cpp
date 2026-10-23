@@ -15,21 +15,21 @@ struct TablePak {
     int priority;
 };
 
-constexpr int kText = PakArchives::kTextPriority;
+constexpr int TEXTS = PakArchives::TEXT_PRIORITY;
 
 // Hard-coded tables, mounted after data\*.pak (priority 0): base FUN_006c4a60 (datals\), HoF FUN_006ec930 (dataa1\).
 // ToE only scans data\*.pak.
-constexpr std::array kBaseTable = {
-    TablePak{L"p5-texts.pak", kText}, TablePak{L"p5-data.pak", 1}, TablePak{L"p6-texts.pak", kText},
-    TablePak{L"p6-data.pak", 2},      TablePak{L"p7-texts.pak", kText}, TablePak{L"p7-data.pak", 3},
-    TablePak{L"p8-texts.pak", kText}, TablePak{L"p8-data.pak", 4},
+constexpr std::array BASE_TABLE = {
+    TablePak{L"p5-texts.pak", TEXTS}, TablePak{L"p5-data.pak", 1}, TablePak{L"p6-texts.pak", TEXTS},
+    TablePak{L"p6-data.pak", 2},      TablePak{L"p7-texts.pak", TEXTS}, TablePak{L"p7-data.pak", 3},
+    TablePak{L"p8-texts.pak", TEXTS}, TablePak{L"p8-data.pak", 4},
 };
-constexpr std::array kHofTable = {
-    TablePak{L"texts.pak", kText},    TablePak{L"p0-data.pak", 1},     TablePak{L"p1-data.pak", 1},
-    TablePak{L"p2-data.pak", 1},      TablePak{L"p3-data.pak", 1},     TablePak{L"p0-texts.pak", kText},
-    TablePak{L"p1-texts.pak", kText}, TablePak{L"p2-texts.pak", kText}, TablePak{L"p3-texts.pak", kText},
+constexpr std::array HOF_TABLE = {
+    TablePak{L"texts.pak", TEXTS},    TablePak{L"p0-data.pak", 1},     TablePak{L"p1-data.pak", 1},
+    TablePak{L"p2-data.pak", 1},      TablePak{L"p3-data.pak", 1},     TablePak{L"p0-texts.pak", TEXTS},
+    TablePak{L"p1-texts.pak", TEXTS}, TablePak{L"p2-texts.pak", TEXTS}, TablePak{L"p3-texts.pak", TEXTS},
     TablePak{L"a1-texts.pak", 2},     TablePak{L"a1-sound.pak", 2},    TablePak{L"a1-data.pak", 2},
-    TablePak{L"a1p1-data.pak", 3},    TablePak{L"a1p1-texts.pak", kText}, TablePak{L"a1p1-sound.pak", 3},
+    TablePak{L"a1p1-data.pak", 3},    TablePak{L"a1p1-texts.pak", TEXTS}, TablePak{L"a1p1-sound.pak", 3},
 };
 
 std::wstring Lower(std::wstring text) {
@@ -77,8 +77,8 @@ std::vector<GamePak> GamePakFiles(GameId game, const std::filesystem::path& root
     std::filesystem::path folder{};
 
     switch (game) {
-        case GameId::Base: table = kBaseTable, folder = root / L"datals"; break;
-        case GameId::HammersOfFate: table = kHofTable, folder = root / L"dataa1"; break;
+        case GameId::Base: table = BASE_TABLE, folder = root / L"datals"; break;
+        case GameId::HammersOfFate: table = HOF_TABLE, folder = root / L"dataa1"; break;
         case GameId::TribesOfTheEast: break;
     }
 

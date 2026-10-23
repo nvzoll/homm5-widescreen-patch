@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <span>
 
-constexpr uintptr_t kPreferredBase = 0x400000;
+constexpr uintptr_t PREFERRED_BASE = 0x400000;
 
 struct ByteEdit {
     uintptr_t va;
@@ -29,7 +29,7 @@ public:
     void** ImportSlot(const char* dll, const char* function) const;
 
     template <typename T>
-    T* At(uintptr_t va) const { return reinterpret_cast<T*>(va - kPreferredBase + base_); }
+    T* At(uintptr_t va) const { return reinterpret_cast<T*>(va - PREFERRED_BASE + base_); }
 
     // absOffsets: positions of 32-bit absolute addresses in `bytes`, rebased like the loader does.
     bool Matches(uintptr_t va, std::span<const uint8_t> bytes, std::span<const size_t> absOffsets = {}) const;

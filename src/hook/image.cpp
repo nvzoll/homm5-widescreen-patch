@@ -78,12 +78,12 @@ void** Image::ImportSlot(const char* dll, const char* function) const {
 }
 
 bool Image::Matches(uintptr_t va, std::span<const uint8_t> bytes, std::span<const size_t> absOffsets) const {
-    const auto expected = Rebased(bytes, absOffsets, static_cast<uint32_t>(base_ - kPreferredBase));
+    const auto expected = Rebased(bytes, absOffsets, static_cast<uint32_t>(base_ - PREFERRED_BASE));
     return std::memcmp(At<const uint8_t>(va), expected.data(), expected.size()) == 0;
 }
 
 void Image::Write(uintptr_t va, std::span<const uint8_t> bytes, std::span<const size_t> absOffsets) const {
-    const auto rebased = Rebased(bytes, absOffsets, static_cast<uint32_t>(base_ - kPreferredBase));
+    const auto rebased = Rebased(bytes, absOffsets, static_cast<uint32_t>(base_ - PREFERRED_BASE));
     void* address = At<void>(va);
     DWORD oldProtect{};
     VirtualProtect(address, rebased.size(), PAGE_EXECUTE_READWRITE, &oldProtect);

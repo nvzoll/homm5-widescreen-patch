@@ -12,7 +12,7 @@
 
 namespace {
 
-constexpr std::array kKnownBuilds = {
+constexpr std::array KNOWN_BUILDS = {
     KnownBuild{GameId::Base, L"GOG", L"1.6", "820786b0f85c62ca96a1a5b18d03d60185047ae8dab09ef6f0b299e3abcfba7c"},
     KnownBuild{GameId::HammersOfFate, L"GOG", L"2.1", "c15cc3c68a5bd1f3111d7d2fda7ef7607dbe96d1aedadaf463b50cbe41b40730"},
     KnownBuild{GameId::TribesOfTheEast, L"GOG", L"3.1", "3eb6fce81071f48631360202d81d41c67b09d8b1807105b1f22c402e15d16268"},
@@ -27,12 +27,12 @@ struct StoreProduct {
     size_t exeCount;
 };
 
-constexpr std::array kGogProducts = {
+constexpr std::array GOG_PRODUCTS = {
     StoreProduct{L"1207661143", {{{GameId::Base, L"bin\\H5_Game.exe"}, {GameId::HammersOfFate, L"bina1\\H5_Game.exe"}}}, 2},
     StoreProduct{L"1207661193", {{{GameId::TribesOfTheEast, L"bin\\H5_Game.exe"}, {}}}, 1},
 };
 
-constexpr std::array kSteamApps = {
+constexpr std::array STEAM_APPS = {
     StoreProduct{L"15170", {{{GameId::Base, L"bin\\H5_Game.exe"}, {}}}, 1},
     StoreProduct{L"15380", {{{GameId::HammersOfFate, L"bina1\\H5_Game.exe"}, {}}}, 1},
     StoreProduct{L"15370", {{{GameId::TribesOfTheEast, L"bin\\H5_Game.exe"}, {}}}, 1},
@@ -57,7 +57,7 @@ std::optional<std::wstring> ReadRegistryString(HKEY root, const std::wstring& su
 }
 
 const KnownBuild* FindBuild(GameId id, const std::string& sha256) {
-    for (const auto& build : kKnownBuilds) {
+    for (const auto& build : KNOWN_BUILDS) {
         if (build.game == id && build.sha256 == sha256) {
             return &build;
         }
@@ -84,7 +84,7 @@ void AddProductGames(const StoreProduct& product, const wchar_t* store, const st
 }
 
 void DetectGog(std::vector<Game>& games) {
-    for (const auto& product : kGogProducts) {
+    for (const auto& product : GOG_PRODUCTS) {
         const std::wstring key = std::wstring(L"SOFTWARE\\GOG.com\\Games\\") + product.id;
         const auto path = ReadRegistryString(HKEY_LOCAL_MACHINE, key, L"path");
         if (!path) {
@@ -174,7 +174,7 @@ std::vector<std::filesystem::path> SteamLibraries() {
 // libraryfolders.vdf's per-library app lists go stale, so each library's manifests are probed directly.
 void DetectSteam(std::vector<Game>& games) {
     for (const auto& library : SteamLibraries()) {
-        for (const auto& app : kSteamApps) {
+        for (const auto& app : STEAM_APPS) {
             const auto manifest = ReadVdf(library / L"steamapps" / (std::wstring(L"appmanifest_") + app.id + L".acf"));
             const auto installDir = VdfValues(manifest, L"installdir");
             if (installDir.empty()) {

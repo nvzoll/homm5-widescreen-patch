@@ -14,31 +14,31 @@
 
 namespace {
 
-constexpr wchar_t kFace[] = L"Palatino Linotype";
-constexpr int kWeight = FW_NORMAL;
-constexpr double kScale = 0.78;
-constexpr std::array kBodyFonts = {"Default_18", "Default_20", "Default_22", "Default_26", "Default_32", "Default_40"};
+constexpr wchar_t FACE[] = L"Palatino Linotype";
+constexpr int WEIGHT = FW_NORMAL;
+constexpr double SCALE = 0.78;
+constexpr std::array BODY_FONTS = {"Default_18", "Default_20", "Default_22", "Default_26", "Default_32", "Default_40"};
 
-constexpr char kBriefName[] = "Brief";
-constexpr double kBriefTrackingPerEm = 0.05;
-constexpr double kBriefWordSpacingPerEm = 0.06;
-constexpr double kBriefStretch = 1.12;
+constexpr char BRIEF_NAME[] = "Brief";
+constexpr double BRIEF_TRACKING_PER_EM = 0.05;
+constexpr double BRIEF_WORD_SPACING_PER_EM = 0.06;
+constexpr double BRIEF_STRETCH = 1.12;
 struct BriefFont {
     const char* templateName;
     const char* uid;  // uuid5(NAMESPACE_URL, "homm5-mod/Brief_<size>")
 };
-constexpr std::array kBriefFonts = {
+constexpr std::array BRIEF_FONTS = {
     BriefFont{"Default_22", "2FA689DD-1F0F-5F4D-9B73-B28A2789A71B"},
     BriefFont{"Default_26", "90CEA78A-02FA-585E-846E-2364E9DEFC1A"},
     BriefFont{"Default_32", "FD84A853-9035-518B-8A5D-9D94079A7111"},
     BriefFont{"Default_40", "1BB1A36F-5968-5605-9685-2BFBD7779DAF"},
 };
 
-constexpr int kSupersample = 4;
-constexpr int kGlyphGap = 3;
-constexpr int kGlyphMargin = 1;
-constexpr size_t kDdsHeaderSize = 128;
-constexpr std::string_view kBaselineSample = "xaenmuvwz";
+constexpr int SUPERSAMPLE = 4;
+constexpr int GLYPH_GAP = 3;
+constexpr int GLYPH_MARGIN = 1;
+constexpr size_t DDS_HEADER_SIZE = 128;
+constexpr std::string_view BASELINE_SAMPLE = "xaenmuvwz";
 
 // Matches Python's round(): half to even.
 int RoundHalfEven(double value) {
@@ -103,17 +103,17 @@ std::optional<Box> InkBox(const Plane& plane) {
 
 // Pillow's BOX resize for an integer factor: a horizontal then a vertical 8-bit pass, each rounding (sum + 2) / 4.
 Plane Downsample(const Plane& in) {
-    static_assert(kSupersample == 4);
-    const int width = in.width / kSupersample;
-    const int height = in.height / kSupersample;
+    static_assert(SUPERSAMPLE == 4);
+    const int width = in.width / SUPERSAMPLE;
+    const int height = in.height / SUPERSAMPLE;
     Plane horizontal(width, in.height);
 
     for (int y = 0; y < in.height; ++y) {
         for (int x = 0; x < width; ++x) {
             int sum = 0;
 
-            for (int k = 0; k < kSupersample; ++k) {
-                sum += in.At(x * kSupersample + k, y);
+            for (int k = 0; k < SUPERSAMPLE; ++k) {
+                sum += in.At(x * SUPERSAMPLE + k, y);
             }
 
             horizontal.pixels[static_cast<size_t>(y) * width + x] = static_cast<uint8_t>((sum + 2) >> 2);
@@ -126,8 +126,8 @@ Plane Downsample(const Plane& in) {
         for (int x = 0; x < width; ++x) {
             int sum = 0;
 
-            for (int k = 0; k < kSupersample; ++k) {
-                sum += horizontal.At(x, y * kSupersample + k);
+            for (int k = 0; k < SUPERSAMPLE; ++k) {
+                sum += horizontal.At(x, y * SUPERSAMPLE + k);
             }
 
             out.pixels[static_cast<size_t>(y) * width + x] = static_cast<uint8_t>((sum + 2) >> 2);
@@ -213,8 +213,8 @@ public:
 
 private:
     static HFONT Create(int em, int width) {
-        return CreateFontW(-em, width, 0, 0, kWeight, FALSE, FALSE, FALSE, ANSI_CHARSET, OUT_DEFAULT_PRECIS,
-                           CLIP_DEFAULT_PRECIS, ANTIALIASED_QUALITY, DEFAULT_PITCH, kFace);
+        return CreateFontW(-em, width, 0, 0, WEIGHT, FALSE, FALSE, FALSE, ANSI_CHARSET, OUT_DEFAULT_PRECIS,
+                           CLIP_DEFAULT_PRECIS, ANTIALIASED_QUALITY, DEFAULT_PITCH, FACE);
     }
 
     int canvasWidth_;
@@ -226,9 +226,9 @@ private:
     TEXTMETRICW metrics_{};
 };
 
-constexpr uint8_t kCharTag[] = {0x01, 0x04};
-constexpr uint8_t kGlyphTag[] = {0x02, 0x38};
-constexpr size_t kGlyphSize = 2 + 7 * 4;
+constexpr uint8_t CHAR_TAG[] = {0x01, 0x04};
+constexpr uint8_t GLYPH_TAG[] = {0x02, 0x38};
+constexpr size_t GLYPH_SIZE = 2 + 7 * 4;
 
 struct Glyph {
     size_t offset;
@@ -271,7 +271,7 @@ std::optional<Metrics> ParseMetrics(std::vector<uint8_t> data) {
     Metrics m{};
     size_t first = 4;
 
-    while (first < data.size() && !(TagAt(data, first, kGlyphTag) && TagAt(data, first - 4, kCharTag))) {
+    while (first < data.size() && !(TagAt(data, first, GLYPH_TAG) && TagAt(data, first - 4, CHAR_TAG))) {
         ++first;
     }
 
@@ -281,7 +281,7 @@ std::optional<Metrics> ParseMetrics(std::vector<uint8_t> data) {
 
     size_t pos = first - 4;
 
-    while (TagAt(data, pos, kCharTag)) {
+    while (TagAt(data, pos, CHAR_TAG)) {
         m.chars.push_back(static_cast<uint16_t>(data[pos + 2] | data[pos + 3] << 8));
 
         if (pos < 4) {
@@ -294,7 +294,7 @@ std::optional<Metrics> ParseMetrics(std::vector<uint8_t> data) {
     m.headerEnd = pos + 4;
     std::reverse(m.chars.begin(), m.chars.end());
 
-    for (pos = first; m.glyphs.size() < m.chars.size() && TagAt(data, pos, kGlyphTag) && pos + kGlyphSize <= data.size(); pos += kGlyphSize) {
+    for (pos = first; m.glyphs.size() < m.chars.size() && TagAt(data, pos, GLYPH_TAG) && pos + GLYPH_SIZE <= data.size(); pos += GLYPH_SIZE) {
         m.glyphs.push_back({pos, GetInt(data, pos + 2), GetInt(data, pos + 6), GetInt(data, pos + 10), GetInt(data, pos + 14),
                             GetInt(data, pos + 18), GetInt(data, pos + 22), GetInt(data, pos + 26)});
     }
@@ -325,7 +325,7 @@ struct Dds {
 };
 
 std::optional<Dds> ParseDds(const std::vector<uint8_t>& raw) {
-    if (raw.size() < kDdsHeaderSize) {
+    if (raw.size() < DDS_HEADER_SIZE) {
         return std::nullopt;
     }
 
@@ -333,14 +333,14 @@ std::optional<Dds> ParseDds(const std::vector<uint8_t>& raw) {
     dds.height = GetInt(raw, 12);
     dds.width = GetInt(raw, 16);
 
-    if (dds.width <= 0 || dds.height <= 0 || raw.size() < kDdsHeaderSize + size_t{4} * dds.width * dds.height) {
+    if (dds.width <= 0 || dds.height <= 0 || raw.size() < DDS_HEADER_SIZE + size_t{4} * dds.width * dds.height) {
         return std::nullopt;
     }
 
     dds.alpha = Plane(dds.width, dds.height);
 
     for (size_t i = 0; i < dds.alpha.pixels.size(); ++i) {
-        dds.alpha.pixels[i] = raw[kDdsHeaderSize + i * 4 + 3];
+        dds.alpha.pixels[i] = raw[DDS_HEADER_SIZE + i * 4 + 3];
     }
 
     return dds;
@@ -349,7 +349,7 @@ std::optional<Dds> ParseDds(const std::vector<uint8_t>& raw) {
 std::optional<int> OriginalBaseline(const Metrics& m, const Plane& atlas) {
     std::vector<int> bottoms{};
 
-    for (const char c : kBaselineSample) {
+    for (const char c : BASELINE_SAMPLE) {
         const Glyph* g = m.Find(static_cast<uint8_t>(c));
         if (!g) {
             return std::nullopt;
@@ -382,7 +382,7 @@ std::optional<std::vector<std::pair<int, int>>> PackGlyphs(const std::vector<Pla
         }
 
         spots.emplace_back(x, y);
-        x += cell.width + kGlyphGap;
+        x += cell.width + GLYPH_GAP;
     }
 
     return spots;
@@ -421,7 +421,7 @@ bool BuildFont(std::vector<uint8_t> metricsData, const std::vector<uint8_t>& tem
 
     // GDI turns antialiasing off for small sizes via the font's gasp table, so render large and downsample.
     const int margin = style.em;
-    GdiFont font(style.em * kSupersample, style.em * 4 * kSupersample, cellHeight * kSupersample, style.stretch);
+    GdiFont font(style.em * SUPERSAMPLE, style.em * 4 * SUPERSAMPLE, cellHeight * SUPERSAMPLE, style.stretch);
     if (!font.ok()) {
         error = L"cannot create the GDI font";
         return false;
@@ -436,23 +436,23 @@ bool BuildFont(std::vector<uint8_t> metricsData, const std::vector<uint8_t>& tem
         if (!control && !font.HasGlyph(c)) {
             wchar_t code[8]{};
             swprintf_s(code, L"U+%04X", c);
-            error = std::wstring(code) + L" is not in " + kFace + L", so the fonts cannot be built. Uncheck Readable fonts.";
+            error = std::wstring(code) + L" is not in " + FACE + L", so the fonts cannot be built. Uncheck Readable fonts.";
             return false;
         }
 
-        const Plane coverage = Downsample(font.Render(c, margin * kSupersample, *baseline * kSupersample));
+        const Plane coverage = Downsample(font.Render(c, margin * SUPERSAMPLE, *baseline * SUPERSAMPLE));
         const bool wordSpace = c == 0x20 || c == 0xA0;
-        const int advance = RoundHalfEven(font.Advance(c) / static_cast<double>(kSupersample)) + style.tracking + (wordSpace ? style.wordSpacing : 0);
+        const int advance = RoundHalfEven(font.Advance(c) / static_cast<double>(SUPERSAMPLE)) + style.tracking + (wordSpace ? style.wordSpacing : 0);
         const auto box = InkBox(coverage);
-        const int left = box ? box->left - kGlyphMargin : margin;
-        const int right = box ? box->right + kGlyphMargin : margin + std::max(1, advance);
+        const int left = box ? box->left - GLYPH_MARGIN : margin;
+        const int right = box ? box->right + GLYPH_MARGIN : margin + std::max(1, advance);
         cells.push_back(coverage.Crop(left, 0, right, cellHeight));
         // The engine steps the pen by a + advance (base FUN_00a913c0), so advance holds what remains after a.
         fields.emplace_back(left - margin, advance - (left - margin));
     }
 
-    if (!SetHeaderInt(m, 0x0C, RoundHalfEven(font.metrics().tmAveCharWidth / static_cast<double>(kSupersample))) ||
-        !SetHeaderInt(m, 0x0D, RoundHalfEven(font.metrics().tmMaxCharWidth / static_cast<double>(kSupersample)))) {
+    if (!SetHeaderInt(m, 0x0C, RoundHalfEven(font.metrics().tmAveCharWidth / static_cast<double>(SUPERSAMPLE))) ||
+        !SetHeaderInt(m, 0x0D, RoundHalfEven(font.metrics().tmMaxCharWidth / static_cast<double>(SUPERSAMPLE)))) {
         error = L"unrecognised font metrics header";
         return false;
     }
@@ -486,11 +486,11 @@ bool BuildFont(std::vector<uint8_t> metricsData, const std::vector<uint8_t>& tem
         }
     }
 
-    out.dds.assign(templateDds.begin(), templateDds.begin() + kDdsHeaderSize);
+    out.dds.assign(templateDds.begin(), templateDds.begin() + DDS_HEADER_SIZE);
     PutInt(out.dds, 12, height);
     PutInt(out.dds, 16, width);
     PutInt(out.dds, 20, width * 4);
-    out.dds.reserve(kDdsHeaderSize + atlas.pixels.size() * 4);
+    out.dds.reserve(DDS_HEADER_SIZE + atlas.pixels.size() * 4);
 
     for (const uint8_t v : atlas.pixels) {
         out.dds.insert(out.dds.end(), {v, v, v, v});  // the game expects RGB == alpha
@@ -557,7 +557,7 @@ std::optional<std::string> Element(const std::string& xml, const std::string& ta
 std::string FaceUtf8() {
     std::string face{};
 
-    for (const wchar_t c : std::wstring_view(kFace)) {
+    for (const wchar_t c : std::wstring_view(FACE)) {
         face += static_cast<char>(c);
     }
 
@@ -617,7 +617,7 @@ bool LoadAndBuild(Templates& templates, const std::string& name, double tracking
         return false;
     }
 
-    FontStyle style{RoundHalfEven(std::stoi(*height) * kScale)};
+    FontStyle style{RoundHalfEven(std::stoi(*height) * SCALE)};
 
     if (briefSpacing) {
         style.tracking = std::max(1, RoundHalfEven(style.em * tracking));
@@ -697,20 +697,20 @@ struct Tag {
     const wchar_t* expansion;
     bool overridden;  // progress_bar also styles other screens, so its users get Brief inlined instead
 };
-constexpr std::array kLoadingScreenTags = {
+constexpr std::array LOADING_SCREEN_TAGS = {
     Tag{L"pwl_h3", L"<font face=Brief size=22><color_white><outline>", true},
     Tag{L"pwl_h4", L"<font face=Brief size=20><color_default><outline>", true},
     Tag{L"progress_bar", L"<font face=Brief size=20><color_bright><outline><center>", false},
 };
 // Base reverts overridden tag files on 2nd+ loads, so the fonts are inlined into these texts as well.
-constexpr std::array kInlinedTexts = {"UI/pwlscreen/MapDesc.txt", "UI/pwlscreen/MissionNumber.txt", "UI/pwlscreen/ProgressBarText.txt",
+constexpr std::array INLINED_TEXTS = {"UI/pwlscreen/MapDesc.txt", "UI/pwlscreen/MissionNumber.txt", "UI/pwlscreen/ProgressBarText.txt",
                                       "UI/AdventureScreen/EnemyTurnBox/player_name_text.txt"};
-constexpr std::array kLeftAlignedTexts = {"UI/pwlscreen/MapDesc.txt", "UI/CreatureInfo/CreatureInfoWindow/description_text.txt",
+constexpr std::array LEFT_ALIGNED_TEXTS = {"UI/pwlscreen/MapDesc.txt", "UI/CreatureInfo/CreatureInfoWindow/description_text.txt",
                                           "UI/HeroScreen3/HeroBiography.txt", "UI/HeroScreen3/HeroDescriptionFormat.txt",
                                           "UI/SaveLoad/SaveInfo/Definition/mapdescriptionvalue.txt",
                                           "UI/TowerOfAstrologer/Captions/Description.txt", "UI/TownInfo/town-description.txt",
                                           "Text/MissionObjectives/QuestDescNormalFormat_Text.txt"};
-constexpr std::array kSpacedTexts = {"UI/pwlscreen/ChooseBonus_Text.txt", "UI/pwlscreen/Loading.txt", "UI/pwlscreen/PressAnyKey.txt",
+constexpr std::array SPACED_TEXTS = {"UI/pwlscreen/ChooseBonus_Text.txt", "UI/pwlscreen/Loading.txt", "UI/pwlscreen/PressAnyKey.txt",
                                      "UI/pwlscreen/WaitForPlayers.txt", "UI/AdventureScreen/EnemyTurnBox/player_name_text.txt"};
 
 bool RequirePalatino(std::wstring& error) {
@@ -718,7 +718,7 @@ bool RequirePalatino(std::wstring& error) {
         return true;
     }
 
-    error = std::wstring(kFace) + L" is not installed, so the fonts cannot be built. Uncheck Readable fonts.";
+    error = std::wstring(FACE) + L" is not installed, so the fonts cannot be built. Uncheck Readable fonts.";
     return false;
 }
 
@@ -726,15 +726,15 @@ bool RequirePalatino(std::wstring& error) {
 
 bool PalatinoInstalled() {
     const HDC dc = CreateCompatibleDC(nullptr);
-    const HFONT font = CreateFontW(-32, 0, 0, 0, kWeight, FALSE, FALSE, FALSE, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
-                                   ANTIALIASED_QUALITY, DEFAULT_PITCH, kFace);
+    const HFONT font = CreateFontW(-32, 0, 0, 0, WEIGHT, FALSE, FALSE, FALSE, ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
+                                   ANTIALIASED_QUALITY, DEFAULT_PITCH, FACE);
     const HGDIOBJ previous = SelectObject(dc, font);
     wchar_t face[LF_FACESIZE]{};
     GetTextFaceW(dc, LF_FACESIZE, face);
     SelectObject(dc, previous);
     DeleteObject(font);
     DeleteDC(dc);
-    return _wcsicmp(face, kFace) == 0;
+    return _wcsicmp(face, FACE) == 0;
 }
 
 bool BuildBodyFonts(const PakArchives& game, std::vector<PakFile>& files, std::wstring& error) {
@@ -744,7 +744,7 @@ bool BuildBodyFonts(const PakArchives& game, std::vector<PakFile>& files, std::w
 
     Templates templates(game, error);
 
-    for (const char* name : kBodyFonts) {
+    for (const char* name : BODY_FONTS) {
         FontTemplate font{};
 
         if (!LoadAndBuild(templates, name, 0, 0, 1.0, false, font, error)) {
@@ -773,19 +773,19 @@ bool BuildBriefFonts(const PakArchives& game, std::vector<PakFile>& files, std::
         return false;
     }
 
-    for (const BriefFont& brief : kBriefFonts) {
+    for (const BriefFont& brief : BRIEF_FONTS) {
         const std::string templateName = brief.templateName;
-        const std::string name = kBriefName + templateName.substr(templateName.find('_'));
+        const std::string name = BRIEF_NAME + templateName.substr(templateName.find('_'));
         FontTemplate font{};
 
-        if (!LoadAndBuild(templates, templateName, kBriefTrackingPerEm, kBriefWordSpacingPerEm, kBriefStretch, true, font, error)) {
+        if (!LoadAndBuild(templates, templateName, BRIEF_TRACKING_PER_EM, BRIEF_WORD_SPACING_PER_EM, BRIEF_STRETCH, true, font, error)) {
             return false;
         }
 
         std::string fontXdb = Replace(font.fontXdb, templateName + ".(Texture).xdb", name + ".(Texture).xdb");
         fontXdb = SetElement(fontXdb, "uid", brief.uid);
         fontXdb = SetElement(fontXdb, "FaceName", FaceUtf8());
-        fontXdb = SetElement(fontXdb, "Name", kBriefName);
+        fontXdb = SetElement(fontXdb, "Name", BRIEF_NAME);
         const std::string base = "UI/Fonts/" + name;
         files.push_back({std::string("bin/fonts/") + brief.uid, std::move(font.built.metrics)});
         files.push_back({base + ".(Texture).dds", std::move(font.built.dds)});
@@ -806,7 +806,7 @@ bool BuildBriefFonts(const PakArchives& game, std::vector<PakFile>& files, std::
 }
 
 bool BuildRestyledTexts(const PakArchives& game, std::vector<PakFile>& files, std::wstring& error) {
-    for (const Tag& tag : kLoadingScreenTags) {
+    for (const Tag& tag : LOADING_SCREEN_TAGS) {
         if (!tag.overridden) {
             continue;
         }
@@ -821,15 +821,15 @@ bool BuildRestyledTexts(const PakArchives& game, std::vector<PakFile>& files, st
     }
 
     const auto listed = [](const auto& list, std::string_view name) { return std::find(list.begin(), list.end(), name) != list.end(); };
-    std::vector<std::string_view> names(kInlinedTexts.begin(), kInlinedTexts.end());
+    std::vector<std::string_view> names(INLINED_TEXTS.begin(), INLINED_TEXTS.end());
 
-    for (const std::string_view name : kLeftAlignedTexts) {
+    for (const std::string_view name : LEFT_ALIGNED_TEXTS) {
         if (!listed(names, name)) {
             names.push_back(name);
         }
     }
 
-    for (const std::string_view name : kSpacedTexts) {
+    for (const std::string_view name : SPACED_TEXTS) {
         if (!listed(names, name)) {
             names.push_back(name);
         }
@@ -848,17 +848,17 @@ bool BuildRestyledTexts(const PakArchives& game, std::vector<PakFile>& files, st
 
         std::wstring restyled = *text;
 
-        if (listed(kInlinedTexts, name)) {
-            for (const Tag& tag : kLoadingScreenTags) {
+        if (listed(INLINED_TEXTS, name)) {
+            for (const Tag& tag : LOADING_SCREEN_TAGS) {
                 restyled = ReplaceAll(restyled, std::wstring(L"<") + tag.name + L">", tag.expansion);
             }
         }
 
-        if (listed(kLeftAlignedTexts, name)) {
+        if (listed(LEFT_ALIGNED_TEXTS, name)) {
             restyled = ReplaceAll(restyled, L"<justify>", L"<left>");
         }
 
-        if (listed(kSpacedTexts, name)) {
+        if (listed(SPACED_TEXTS, name)) {
             restyled = SingleSpaced(restyled);
         }
 

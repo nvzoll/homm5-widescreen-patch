@@ -65,12 +65,12 @@ std::optional<std::string> Sha256File(const std::filesystem::path& path) {
         return std::nullopt;
     }
 
-    static constexpr char kHex[] = "0123456789abcdef";
+    static constexpr char HEX[] = "0123456789abcdef";
     std::string text{};
 
     for (const UCHAR byte : digest) {
-        text += kHex[byte >> 4];
-        text += kHex[byte & 0xF];
+        text += HEX[byte >> 4];
+        text += HEX[byte & 0xF];
     }
 
     return text;

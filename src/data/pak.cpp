@@ -59,7 +59,7 @@ bool PakArchives::Add(const std::filesystem::path& pak, int priority, std::wstri
         const auto [it, inserted] = files_.try_emplace(Lower(name), location);
         const Location& current = it->second;
 
-        const bool byDate = priority == current.priority || priority == kTextPriority || current.priority == kTextPriority;
+        const bool byDate = priority == current.priority || priority == TEXT_PRIORITY || current.priority == TEXT_PRIORITY;
         if (!inserted && (byDate ? location.dosDateTime > current.dosDateTime : priority > current.priority)) {
             it->second = location;
         }

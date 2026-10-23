@@ -10,14 +10,14 @@
 
 namespace {
 
-constexpr uint32_t kDosDateTime = (2026 - 1980) << 25 | 10 << 21 | 20 << 16 | 12 << 11;
+constexpr uint32_t DOS_DATE_TIME = (2026 - 1980) << 25 | 10 << 21 | 20 << 16 | 12 << 11;
 
 using Builder = bool (*)(const PakArchives&, std::vector<PakFile>&, std::wstring&);
 
 bool Write(const std::filesystem::path& out, Builder build, const PakArchives& game, std::wstring& error) {
     std::vector<PakFile> files{};
 
-    if (!build(game, files, error) || !WritePak(out, files, kDosDateTime, error)) {
+    if (!build(game, files, error) || !WritePak(out, files, DOS_DATE_TIME, error)) {
         return false;
     }
 
@@ -42,7 +42,7 @@ int wmain(int argc, wchar_t** argv) {
 
     if (mode == L"paks") {
         for (int i = 3; i < argc && ok; ++i) {
-            ok = game.Add(argv[i], PakArchives::kTextPriority, error);
+            ok = game.Add(argv[i], PakArchives::TEXT_PRIORITY, error);
         }
     } else if (mode == L"base" || mode == L"hof" || mode == L"toe") {
         const GameId id = mode == L"base" ? GameId::Base : mode == L"hof" ? GameId::HammersOfFate : GameId::TribesOfTheEast;

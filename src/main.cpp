@@ -16,10 +16,10 @@
 
 namespace {
 
-constexpr UINT kLogMessage = WM_APP + 1;  // lparam: heap std::wstring*, owned by the receiver
-constexpr UINT kJobDoneMessage = WM_APP + 2;
-constexpr UINT kStartupCheckMessage = WM_APP + 3;
-constexpr UINT_PTR kRecheckTimer = 1;
+constexpr UINT LOG_MESSAGE = WM_APP + 1;  // lparam: heap std::wstring*, owned by the receiver
+constexpr UINT JOB_DONE_MESSAGE = WM_APP + 2;
+constexpr UINT STARTUP_CHECK_MESSAGE = WM_APP + 3;
+constexpr UINT_PTR RECHECK_TIMER = 1;
 
 std::vector<Game> g_games;
 bool g_palatino = false;
@@ -34,7 +34,7 @@ void AppendLog(HWND dialog, const std::wstring& line) {
 
 // Safe from the worker thread.
 void PostLog(HWND dialog, std::wstring line) {
-    PostMessageW(dialog, kLogMessage, 0, reinterpret_cast<LPARAM>(new std::wstring(std::move(line))));
+    PostMessageW(dialog, LOG_MESSAGE, 0, reinterpret_cast<LPARAM>(new std::wstring(std::move(line))));
 }
 
 std::wstring Widen(const std::string& text) {
@@ -276,7 +276,7 @@ void StartJob(HWND dialog, const wchar_t* title, Job job) {
     AppendLog(dialog, title);
     g_job = std::thread([dialog, job] {
         job();
-        PostMessageW(dialog, kJobDoneMessage, 0, 0);
+        PostMessageW(dialog, JOB_DONE_MESSAGE, 0, 0);
     });
 }
 
@@ -366,10 +366,10 @@ INT_PTR CALLBACK DialogProc(HWND dialog, UINT message, WPARAM wparam, LPARAM lpa
             ReportGames(dialog);
             ReportPalatino(dialog);
             InitOptions(dialog);
-            SetTimer(dialog, kRecheckTimer, 1000, nullptr);
-            PostMessageW(dialog, kStartupCheckMessage, 0, 0);
+            SetTimer(dialog, RECHECK_TIMER, 1000, nullptr);
+            PostMessageW(dialog, STARTUP_CHECK_MESSAGE, 0, 0);
             return TRUE;
-        case kStartupCheckMessage:
+        case STARTUP_CHECK_MESSAGE:
             WarnIfNotExtracted(dialog);
             return TRUE;
         case WM_TIMER:
@@ -382,12 +382,12 @@ INT_PTR CALLBACK DialogProc(HWND dialog, UINT message, WPARAM wparam, LPARAM lpa
             }
 
             return TRUE;
-        case kLogMessage: {
+        case LOG_MESSAGE: {
             const std::unique_ptr<std::wstring> line(reinterpret_cast<std::wstring*>(lparam));
             AppendLog(dialog, *line);
             return TRUE;
         }
-        case kJobDoneMessage:
+        case JOB_DONE_MESSAGE:
             g_job.join();
             AppendLog(dialog, L"Done.");
             RefreshPatchColumn(dialog);

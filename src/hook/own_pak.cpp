@@ -9,7 +9,7 @@
 namespace {
 
 // Above every hard-coded pak (base tops out at 4, HoF at 3). Text paks (-1) still compare by date; ours is newer.
-constexpr int kOwnPakPriority = 100;
+constexpr int OWN_PAK_PRIORITY = 100;
 
 struct GameString {
     const char* begin;
@@ -26,7 +26,7 @@ uintptr_t g_factory;
 
 void __stdcall MountOwnPak(void* vfs) {
     if (vfs) {
-        g_mountPattern(vfs, &g_pattern, kOwnPakPriority);
+        g_mountPattern(vfs, &g_pattern, OWN_PAK_PRIORITY);
     }
 }
 

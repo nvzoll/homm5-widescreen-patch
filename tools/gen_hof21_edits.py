@@ -11,8 +11,8 @@ import pefile
 
 IMAGE_REL_BASED_HIGHLOW = 3
 GROUPS = {
-    "kWidescreenEdits": [(0xE437E0, 0xE43D7C), (0xE3B2AB, 0xE3B2AD)],
-    "kMinimapEdits": [(va, va + 8) for va in (0x833465, 0x83347B, 0x833522, 0x83353A, 0x8335DF,
+    "WIDESCREEN_EDITS": [(0xE437E0, 0xE43D7C), (0xE3B2AB, 0xE3B2AD)],
+    "MINIMAP_EDITS": [(va, va + 8) for va in (0x833465, 0x83347B, 0x833522, 0x83353A, 0x8335DF,
                                                0x8335F7, 0x833796, 0x8337A9, 0x833962, 0x833975)],
 }
 

@@ -14,7 +14,7 @@
 namespace {
 
 // Newer than every shipped entry, which matters wherever the game compares dates (text paks, ToE).
-constexpr uint32_t kGamePakDosDateTime = (2026 - 1980) << 25 | 10 << 21 | 20 << 16 | 12 << 11;
+constexpr uint32_t GAME_PAK_DOS_DATE_TIME = (2026 - 1980) << 25 | 10 << 21 | 20 << 16 | 12 << 11;
 
 std::string Lower(std::string text) {
     std::transform(text.begin(), text.end(), text.begin(), [](char c) { return c >= 'A' && c <= 'Z' ? static_cast<char>(c - 'A' + 'a') : c; });
@@ -82,7 +82,7 @@ bool BuildGamePak(GameId game, const std::filesystem::path& root, std::span<cons
     auto temporary = out;
     temporary += L".tmp";
 
-    if (!WritePak(temporary, files, kGamePakDosDateTime, error)) {
+    if (!WritePak(temporary, files, GAME_PAK_DOS_DATE_TIME, error)) {
         return false;
     }
 

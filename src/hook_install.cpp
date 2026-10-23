@@ -8,9 +8,9 @@
 
 namespace {
 
-constexpr const wchar_t* kHookDll = L"dinput8.dll";
-constexpr const wchar_t* kIni = L"homm5-widescreen.ini";
-constexpr const wchar_t* kLog = L"homm5-widescreen.log";
+constexpr const wchar_t* HOOK_DLL = L"dinput8.dll";
+constexpr const wchar_t* INI = L"homm5-widescreen.ini";
+constexpr const wchar_t* LOG = L"homm5-widescreen.log";
 
 std::filesystem::path InGameDir(const Game& game, const wchar_t* name) {
     return game.exe.parent_path() / name;
@@ -125,13 +125,13 @@ constexpr uint64_t PackVersion(uint64_t major, uint64_t minor, uint64_t patch, u
 }  // namespace
 
 std::filesystem::path HookDllPath(const Game& game) {
-    return InGameDir(game, kHookDll);
+    return InGameDir(game, HOOK_DLL);
 }
 
 std::filesystem::path PackagedHookDll() {
     wchar_t path[MAX_PATH]{};
     const DWORD length = GetModuleFileNameW(nullptr, path, MAX_PATH);
-    return std::filesystem::path(std::wstring(path, length)).parent_path() / kHookDll;
+    return std::filesystem::path(std::wstring(path, length)).parent_path() / HOOK_DLL;
 }
 
 HookState QueryHook(const Game& game) {
@@ -151,7 +151,7 @@ HookState QueryHook(const Game& game) {
 }
 
 bool ReadSkipFade(const Game& game) {
-    return GetPrivateProfileIntW(L"options", L"skip_fade", 0, InGameDir(game, kIni).c_str()) != 0;
+    return GetPrivateProfileIntW(L"options", L"skip_fade", 0, InGameDir(game, INI).c_str()) != 0;
 }
 
 bool WriteHookOptions(const Game& game, bool skipFade, std::wstring& error) {
@@ -160,7 +160,7 @@ bool WriteHookOptions(const Game& game, bool skipFade, std::wstring& error) {
         return false;
     }
 
-    const auto ini = InGameDir(game, kIni);
+    const auto ini = InGameDir(game, INI);
 
     if (!WritePrivateProfileStringW(L"options", L"skip_fade", skipFade ? L"1" : L"0", ini.c_str())) {
         return Fail(error, ini);
@@ -175,6 +175,6 @@ bool UninstallHook(const Game& game, std::wstring& error) {
         return false;
     }
 
-    return DeleteIfPresent(InGameDir(game, kIni), error) && DeleteIfPresent(InGameDir(game, kLog), error) &&
+    return DeleteIfPresent(InGameDir(game, INI), error) && DeleteIfPresent(InGameDir(game, LOG), error) &&
            DeleteFallbackLog(game, error);
 }

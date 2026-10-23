@@ -63,18 +63,18 @@ bool DeleteIfPresent(const std::filesystem::path& path, std::wstring& error) {
     return false;
 }
 
-constexpr uint64_t kFnvOffsetBasis = 0xCBF29CE484222325ull;
-constexpr uint64_t kFnvPrime = 0x100000001B3ull;
-constexpr size_t kFingerprintSize = 16 + 1;
+constexpr uint64_t FNV_OFFSET_BASIS = 0xCBF29CE484222325ull;
+constexpr uint64_t FNV_PRIME = 0x100000001B3ull;
+constexpr size_t FINGERPRINT_SIZE = 16 + 1;
 
 void Mix(uint64_t& hash, const void* bytes, size_t size) {
     for (size_t i = 0; i < size; ++i) {
-        hash = (hash ^ static_cast<const uint8_t*>(bytes)[i]) * kFnvPrime;
+        hash = (hash ^ static_cast<const uint8_t*>(bytes)[i]) * FNV_PRIME;
     }
 }
 
 std::wstring GamePaksFingerprint(const Game& game) {
-    uint64_t hash = kFnvOffsetBasis;
+    uint64_t hash = FNV_OFFSET_BASIS;
 
     for (const GamePak& pak : GamePakFiles(game.id, game.root)) {
         WIN32_FILE_ATTRIBUTE_DATA info{};
@@ -87,8 +87,8 @@ std::wstring GamePaksFingerprint(const Game& game) {
         Mix(hash, &info.ftLastWriteTime, sizeof info.ftLastWriteTime);
     }
 
-    wchar_t text[kFingerprintSize]{};
-    swprintf(text, kFingerprintSize, L"%016llx", static_cast<unsigned long long>(hash));
+    wchar_t text[FINGERPRINT_SIZE]{};
+    swprintf(text, FINGERPRINT_SIZE, L"%016llx", static_cast<unsigned long long>(hash));
     return text;
 }
 
@@ -100,12 +100,12 @@ bool InstallIntroFiles(const Game& game, std::wstring& error) {
     }
 
     const std::string playlist = IntroPlaylistXml();
-    return WriteBytes(VideoPath(game, kIntroClip), clip, error) &&
-           WriteBytes(VideoPath(game, kIntroPlaylist), {reinterpret_cast<const uint8_t*>(playlist.data()), playlist.size()}, error);
+    return WriteBytes(VideoPath(game, INTRO_CLIP), clip, error) &&
+           WriteBytes(VideoPath(game, INTRO_PLAYLIST), {reinterpret_cast<const uint8_t*>(playlist.data()), playlist.size()}, error);
 }
 
 bool UninstallIntroFiles(const Game& game, std::wstring& error) {
-    return DeleteIfPresent(VideoPath(game, kIntroClip), error) && DeleteIfPresent(VideoPath(game, kIntroPlaylist), error);
+    return DeleteIfPresent(VideoPath(game, INTRO_CLIP), error) && DeleteIfPresent(VideoPath(game, INTRO_PLAYLIST), error);
 }
 
 }  // namespace
@@ -163,12 +163,12 @@ bool GamePakComplete(const Game& game, bool skipIntro) {
         return false;
     }
 
-    return !skipIntro || (std::filesystem::exists(VideoPath(game, kIntroClip), ec) && std::filesystem::exists(VideoPath(game, kIntroPlaylist), ec));
+    return !skipIntro || (std::filesystem::exists(VideoPath(game, INTRO_CLIP), ec) && std::filesystem::exists(VideoPath(game, INTRO_PLAYLIST), ec));
 }
 
 bool GamePakOutdated(const Game& game) {
-    wchar_t stored[kFingerprintSize]{};
-    GetPrivateProfileStringW(L"pak", L"game_paks", L"", stored, kFingerprintSize, IniPath(game).c_str());
+    wchar_t stored[FINGERPRINT_SIZE]{};
+    GetPrivateProfileStringW(L"pak", L"game_paks", L"", stored, FINGERPRINT_SIZE, IniPath(game).c_str());
     return GamePaksFingerprint(game) != stored;
 }
 

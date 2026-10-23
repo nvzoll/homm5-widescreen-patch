@@ -6,7 +6,7 @@
 
 namespace {
 
-enum Kind : uint8_t { kNew = 0, kPatch = 1 };
+enum Kind : uint8_t { NEW = 0, PATCH = 1 };
 
 class Reader {
 public:
@@ -114,10 +114,10 @@ bool ApplyRecipe(std::span<const uint8_t> data, const PakArchives& sources, std:
         PakFile file{std::string(name.begin(), name.end()), {}};
         const auto kind = recipe.Get<uint8_t>();
 
-        if (kind == kNew) {
+        if (kind == NEW) {
             const auto content = recipe.Bytes(recipe.Get<uint32_t>());
             file.data.assign(content.begin(), content.end());
-        } else if (kind != kPatch || !Patch(recipe, file.name, sources, file.data, error)) {
+        } else if (kind != PATCH || !Patch(recipe, file.name, sources, file.data, error)) {
             if (error.empty()) {
                 error = L"corrupt recipe";
             }
