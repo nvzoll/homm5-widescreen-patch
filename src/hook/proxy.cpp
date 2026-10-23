@@ -4,12 +4,16 @@ namespace {
 
 FARPROC RealExport(const char* name) {
     static HMODULE real = [] {
-        wchar_t path[MAX_PATH];
+        wchar_t path[MAX_PATH]{};
         const UINT length = GetSystemDirectoryW(path, MAX_PATH);
-        if (length == 0 || length + 13 >= MAX_PATH) return HMODULE{};
+        if (length == 0 || length + 13 >= MAX_PATH) {
+            return HMODULE{};
+        }
+
         lstrcatW(path, L"\\dinput8.dll");
         return LoadLibraryW(path);
     }();
+
     return real ? GetProcAddress(real, name) : nullptr;
 }
 

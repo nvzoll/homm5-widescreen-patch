@@ -70,10 +70,11 @@ float* g_virtualH;
 // client area keeps the backbuffer size.
 BOOL WINAPI FramedSetWindowPos(HWND hwnd, HWND insertAfter, int x, int y, int cx, int cy, UINT flags) {
     const HWND main = *g_mainHwnd;
+
     if (*g_windowed) {
         SetWindowLongA(main, GWL_STYLE, kWindowedStyle);
         SetWindowPos(main, nullptr, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER | SWP_FRAMECHANGED);
-        RECT window, client;
+        RECT window{}, client{};
         GetWindowRect(main, &window);
         GetClientRect(main, &client);
         cx += (window.right - window.left) - client.right;
@@ -81,12 +82,16 @@ BOOL WINAPI FramedSetWindowPos(HWND hwnd, HWND insertAfter, int x, int y, int cx
     } else {
         SetWindowLongA(main, GWL_STYLE, static_cast<LONG>(kFullscreenStyle));
     }
+
     return SetWindowPos(hwnd, insertAfter, x, y, cx, cy, flags);
 }
 
 // NUI::CCursor maps the mouse through GetWindowRect, which is the client area only without a frame.
 BOOL WINAPI ClientRectOnScreen(HWND hwnd, RECT* rect) {
-    if (!GetClientRect(hwnd, rect)) return FALSE;
+    if (!GetClientRect(hwnd, rect)) {
+        return FALSE;
+    }
+
     POINT origin{};
     ClientToScreen(hwnd, &origin);
     OffsetRect(rect, origin.x, origin.y);
@@ -96,7 +101,11 @@ BOOL WINAPI ClientRectOnScreen(HWND hwnd, RECT* rect) {
 void __stdcall SetScreenSize(int width, int height) {
     *g_screenW = static_cast<float>(width);
     *g_screenH = static_cast<float>(height);
-    if (height == 0) return;
+
+    if (height == 0) {
+        return;
+    }
+
     const VirtualScreen screen = ToeVirtualScreen(width, height, 1024.0f, 768.0f);
     *g_virtualW = screen.width;
     *g_virtualH = screen.height;
@@ -108,8 +117,13 @@ void PlaceAxis(float virtualSize, float designSize, int align, float& low, float
         high = virtualSize;
         return;
     }
+
     low = virtualSize - designSize;
-    if (align != kAlignHighEnd) low *= 0.5f;
+
+    if (align != kAlignHighEnd) {
+        low *= 0.5f;
+    }
+
     high = low + designSize;
 }
 
@@ -150,7 +164,10 @@ void Report(std::string& log, const char* feature, bool installed) {
 }  // namespace
 
 bool InstallHof21(const Image& image, const Options& options, std::string& log) {
-    if (!image.IsBuild(kTimestamp, kSizeOfImage)) return false;
+    if (!image.IsBuild(kTimestamp, kSizeOfImage)) {
+        return false;
+    }
+
     log += "Heroes V: Hammers of Fate 2.1 (";
     log += image.store();
     log += ")\r\n";
@@ -163,7 +180,10 @@ bool InstallHof21(const Image& image, const Options& options, std::string& log) 
     g_virtualH = image.At<float>(kVirtualH);
 
     const bool frame = image.Matches(kSetWindowPosCall, kSetWindowPosCallOriginal, kIndirectCallAbs);
-    if (frame) image.WriteCall(kSetWindowPosCall, reinterpret_cast<const void*>(&FramedSetWindowPos), kSetWindowPosCallOriginal.size());
+    if (frame) {
+        image.WriteCall(kSetWindowPosCall, reinterpret_cast<const void*>(&FramedSetWindowPos), kSetWindowPosCallOriginal.size());
+    }
+
     Report(log, "window frame", frame);
 
     const bool cursor = frame && image.Matches(kCursorGetWindowRectCalls[0], kGetWindowRectCallOriginal, kIndirectCallAbs) &&
@@ -173,6 +193,7 @@ bool InstallHof21(const Image& image, const Options& options, std::string& log) 
             image.WriteCall(call, reinterpret_cast<const void*>(&ClientRectOnScreen), kGetWindowRectCallOriginal.size());
         }
     }
+
     Report(log, "cursor offset", cursor);
 
     const bool pak = InstallOwnPak(image, kVfsFactory, log);
@@ -185,12 +206,16 @@ bool InstallHof21(const Image& image, const Options& options, std::string& log) 
         image.WriteCall(kRootRectSite, reinterpret_cast<const void*>(&PlaceRootRectStub), kRootRectOriginal.size());
         image.ApplyAll(kMinimapEdits);
     }
+
     if (pak) {
         Report(log, "widescreen", widescreen);
     } else {
         log += "  widescreen: skipped, needs the pak\r\n";
     }
 
-    if (options.skipFade) InstallSkipFade(image, kFadeCalls, kFadeCallsOriginal, log);
+    if (options.skipFade) {
+        InstallSkipFade(image, kFadeCalls, kFadeCallsOriginal, log);
+    }
+
     return true;
 }

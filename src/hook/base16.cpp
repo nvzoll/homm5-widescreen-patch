@@ -66,7 +66,10 @@ __declspec(naked) void SetVirtualScreenStub() {
 }  // namespace
 
 bool InstallBase16(const Image& image, const Options& options, std::string& log) {
-    if (!image.IsBuild(kTimestamp, kSizeOfImage)) return false;
+    if (!image.IsBuild(kTimestamp, kSizeOfImage)) {
+        return false;
+    }
+
     log += "Heroes V 1.6 (";
     log += image.store();
     log += ")\r\n";
@@ -85,6 +88,9 @@ bool InstallBase16(const Image& image, const Options& options, std::string& log)
         log += "  widescreen: unexpected bytes, skipped\r\n";
     }
 
-    if (options.skipFade) InstallSkipFade(image, kFadeCalls, kFadeCallsOriginal, log);
+    if (options.skipFade) {
+        InstallSkipFade(image, kFadeCalls, kFadeCallsOriginal, log);
+    }
+
     return true;
 }

@@ -9,12 +9,14 @@ namespace {
 
 std::vector<uint8_t> Rebased(std::span<const uint8_t> bytes, std::span<const size_t> absOffsets, uint32_t delta) {
     std::vector<uint8_t> result(bytes.begin(), bytes.end());
+
     for (const size_t offset : absOffsets) {
-        uint32_t value;
+        uint32_t value{};
         std::memcpy(&value, result.data() + offset, sizeof value);
         value += delta;
         std::memcpy(result.data() + offset, &value, sizeof value);
     }
+
     return result;
 }
 
@@ -31,8 +33,12 @@ Image::Image() : base_(reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr))) {
     unwrappedSizeOfImage_ = nt->OptionalHeader.SizeOfImage;
     steamStub_ = false;
     const WORD count = nt->FileHeader.NumberOfSections;
-    if (count == 0) return;
+    if (count == 0) {
+        return;
+    }
+
     const IMAGE_SECTION_HEADER& last = IMAGE_FIRST_SECTION(nt)[count - 1];
+
     if (std::memcmp(last.Name, ".bind\0\0\0", IMAGE_SIZEOF_SHORT_NAME) == 0) {
         steamStub_ = true;
         unwrappedSizeOfImage_ = last.VirtualAddress;
@@ -43,18 +49,31 @@ void** Image::ImportSlot(const char* dll, const char* function) const {
     const auto* dos = reinterpret_cast<const IMAGE_DOS_HEADER*>(base_);
     const auto* nt = reinterpret_cast<const IMAGE_NT_HEADERS32*>(base_ + dos->e_lfanew);
     const IMAGE_DATA_DIRECTORY& directory = nt->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT];
-    if (directory.VirtualAddress == 0) return nullptr;
+    if (directory.VirtualAddress == 0) {
+        return nullptr;
+    }
+
     for (auto* descriptor = reinterpret_cast<const IMAGE_IMPORT_DESCRIPTOR*>(base_ + directory.VirtualAddress); descriptor->Name != 0;
          ++descriptor) {
-        if (lstrcmpiA(reinterpret_cast<const char*>(base_ + descriptor->Name), dll) != 0 || descriptor->OriginalFirstThunk == 0) continue;
+        if (lstrcmpiA(reinterpret_cast<const char*>(base_ + descriptor->Name), dll) != 0 || descriptor->OriginalFirstThunk == 0) {
+            continue;
+        }
+
         const auto* names = reinterpret_cast<const IMAGE_THUNK_DATA32*>(base_ + descriptor->OriginalFirstThunk);
         auto** slots = reinterpret_cast<void**>(base_ + descriptor->FirstThunk);
+
         for (size_t i = 0; names[i].u1.AddressOfData != 0; ++i) {
-            if (IMAGE_SNAP_BY_ORDINAL32(names[i].u1.Ordinal)) continue;
+            if (IMAGE_SNAP_BY_ORDINAL32(names[i].u1.Ordinal)) {
+                continue;
+            }
+
             const auto* byName = reinterpret_cast<const IMAGE_IMPORT_BY_NAME*>(base_ + names[i].u1.AddressOfData);
-            if (lstrcmpA(byName->Name, function) == 0) return &slots[i];
+            if (lstrcmpA(byName->Name, function) == 0) {
+                return &slots[i];
+            }
         }
     }
+
     return nullptr;
 }
 
@@ -66,7 +85,7 @@ bool Image::Matches(uintptr_t va, std::span<const uint8_t> bytes, std::span<cons
 void Image::Write(uintptr_t va, std::span<const uint8_t> bytes, std::span<const size_t> absOffsets) const {
     const auto rebased = Rebased(bytes, absOffsets, static_cast<uint32_t>(base_ - kPreferredBase));
     void* address = At<void>(va);
-    DWORD oldProtect;
+    DWORD oldProtect{};
     VirtualProtect(address, rebased.size(), PAGE_EXECUTE_READWRITE, &oldProtect);
     std::memcpy(address, rebased.data(), rebased.size());
     VirtualProtect(address, rebased.size(), oldProtect, &oldProtect);
@@ -97,8 +116,12 @@ void Image::Nop(uintptr_t va, size_t length) const {
 bool Image::MatchesAll(std::span<const ByteEdit> edits) const {
     for (const ByteEdit& edit : edits) {
         const size_t absOffset = static_cast<size_t>(edit.absOffset);
-        if (!Matches(edit.va, {edit.original, edit.length}, AbsOffsets(edit, absOffset))) return false;
+
+        if (!Matches(edit.va, {edit.original, edit.length}, AbsOffsets(edit, absOffset))) {
+            return false;
+        }
     }
+
     return true;
 }
 

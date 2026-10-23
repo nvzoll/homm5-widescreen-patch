@@ -21,6 +21,10 @@ inline void InstallSkipFade(const Image& image, const std::array<uintptr_t, 2>& 
         log += "  skip_fade: unexpected bytes, skipped\r\n";
         return;
     }
-    for (const uintptr_t call : calls) image.Nop(call, 5);
+
+    for (const uintptr_t call : calls) {
+        image.Nop(call, 5);
+    }
+
     log += "  skip_fade: installed\r\n";
 }

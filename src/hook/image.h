@@ -21,6 +21,7 @@ public:
     uint32_t unwrappedSizeOfImage() const { return unwrappedSizeOfImage_; }
     bool steamStub() const { return steamStub_; }
     const char* store() const { return steamStub_ ? "Steam" : "GOG"; }
+
     bool IsBuild(uint32_t timestamp, uint32_t sizeOfImage) const {
         return timestamp_ == timestamp && unwrappedSizeOfImage_ == sizeOfImage;
     }

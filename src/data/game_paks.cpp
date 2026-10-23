@@ -49,35 +49,51 @@ bool IsOwn(const std::filesystem::path& pak) {
 }  // namespace
 
 bool MountGamePaks(GameId game, const std::filesystem::path& root, PakArchives& archives, std::wstring& error) {
-    std::vector<std::filesystem::path> scanned;
-    std::error_code ec;
+    std::vector<std::filesystem::path> scanned{};
+    std::error_code ec{};
+
     for (std::filesystem::directory_iterator it(root / L"data", ec), end; !ec && it != end; it.increment(ec)) {
-        std::error_code typeError;
+        std::error_code typeError{};
+
         if (it->is_regular_file(typeError) && Lower(it->path().extension().wstring()) == L".pak" && !IsOwn(it->path())) {
             scanned.push_back(it->path());
         }
     }
+
     if (ec || scanned.empty()) {
         error = (root / L"data").wstring() + L": no game paks found";
         return false;
     }
+
     // FindFirstFile order on NTFS (upper-cased names); the game scans the folder the same way.
     std::sort(scanned.begin(), scanned.end(), [](const auto& a, const auto& b) { return Upper(a.filename().wstring()) < Upper(b.filename().wstring()); });
+
     for (const auto& pak : scanned) {
-        if (!archives.Add(pak, 0, error)) return false;
+        if (!archives.Add(pak, 0, error)) {
+            return false;
+        }
     }
 
-    std::span<const TablePak> table;
-    std::filesystem::path folder;
+    std::span<const TablePak> table{};
+    std::filesystem::path folder{};
+
     switch (game) {
         case GameId::Base: table = kBaseTable, folder = root / L"datals"; break;
         case GameId::HammersOfFate: table = kHofTable, folder = root / L"dataa1"; break;
         case GameId::TribesOfTheEast: break;
     }
+
     for (const TablePak& entry : table) {
         const auto pak = folder / entry.name;
-        if (IsOwn(pak) || !std::filesystem::is_regular_file(pak, ec)) continue;
-        if (!archives.Add(pak, entry.priority, error)) return false;
+
+        if (IsOwn(pak) || !std::filesystem::is_regular_file(pak, ec)) {
+            continue;
+        }
+
+        if (!archives.Add(pak, entry.priority, error)) {
+            return false;
+        }
     }
+
     return true;
 }

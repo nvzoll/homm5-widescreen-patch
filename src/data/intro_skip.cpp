@@ -14,9 +14,13 @@ constexpr std::string_view kMovieClose = "</MovieDesc>";
 bool BuildIntroSkip(const PakArchives& game, std::vector<PakFile>& files, std::wstring& error) {
     const auto data = game.Read(kGameRoot, error);
     if (!data) {
-        if (error.empty()) error = L"UI/UIGameRoot.(UIGameRoot).xdb: missing from the game data";
+        if (error.empty()) {
+            error = L"UI/UIGameRoot.(UIGameRoot).xdb: missing from the game data";
+        }
+
         return false;
     }
+
     std::string xml(data->begin(), data->end());
     const size_t id = xml.find(kIntroId);
     const size_t open = id == std::string::npos ? id : xml.find(kMovieOpen, id);
@@ -25,6 +29,7 @@ bool BuildIntroSkip(const PakArchives& game, std::vector<PakFile>& files, std::w
         error = L"UI/UIGameRoot.(UIGameRoot).xdb: no intro movie entry";
         return false;
     }
+
     const size_t value = open + kMovieOpen.size();
     xml.replace(value, close - value, std::string("../video/") + kIntroPlaylist);
     files.push_back({kGameRoot, {xml.begin(), xml.end()}});

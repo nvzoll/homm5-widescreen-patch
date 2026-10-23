@@ -22,13 +22,15 @@ std::string Lower(std::string text) {
 }
 
 bool CheckUnique(const std::vector<PakFile>& files, std::wstring& error) {
-    std::set<std::string> names;
+    std::set<std::string> names{};
+
     for (const PakFile& file : files) {
         if (!names.insert(Lower(file.name)).second) {
             error = std::wstring(file.name.begin(), file.name.end()) + L": built twice";
             return false;
         }
     }
+
     return true;
 }
 
@@ -36,39 +38,61 @@ bool CheckUnique(const std::vector<PakFile>& files, std::wstring& error) {
 
 bool BuildDataPak(GameId game, const std::filesystem::path& root, std::span<const uint8_t> recipe,
                   const std::filesystem::path& out, std::wstring& error) {
-    PakArchives archives;
-    std::vector<PakFile> files;
+    PakArchives archives{};
+    std::vector<PakFile> files{};
     uint32_t dosDateTime = 0;
+
     return MountGamePaks(game, root, archives, error) && ApplyRecipe(recipe, archives, files, dosDateTime, error) &&
            WritePak(out, files, dosDateTime, error);
 }
 
 bool BuildGamePak(GameId game, const std::filesystem::path& root, std::span<const uint8_t> recipe, const GamePakOptions& options,
                   const std::filesystem::path& out, std::wstring& error) {
-    PakArchives archives;
-    if (!MountGamePaks(game, root, archives, error)) return false;
-    std::vector<PakFile> files;
+    PakArchives archives{};
+
+    if (!MountGamePaks(game, root, archives, error)) {
+        return false;
+    }
+
+    std::vector<PakFile> files{};
     uint32_t recipeDate = 0;
-    if (!ApplyRecipe(recipe, archives, files, recipeDate, error)) return false;
+
+    if (!ApplyRecipe(recipe, archives, files, recipeDate, error)) {
+        return false;
+    }
+
     if (options.fonts && !(BuildBodyFonts(archives, files, error) && BuildBriefFonts(archives, files, error) &&
                            BuildRestyledTexts(archives, files, error))) {
         return false;
     }
-    if (options.skipIntro && !BuildIntroSkip(archives, files, error)) return false;
+
+    if (options.skipIntro && !BuildIntroSkip(archives, files, error)) {
+        return false;
+    }
+
     if (files.empty()) {
         error = L"nothing to install";
         return false;
     }
-    if (!CheckUnique(files, error)) return false;
+
+    if (!CheckUnique(files, error)) {
+        return false;
+    }
+
     auto temporary = out;
     temporary += L".tmp";
-    if (!WritePak(temporary, files, kGamePakDosDateTime, error)) return false;
-    std::error_code ec;
+
+    if (!WritePak(temporary, files, kGamePakDosDateTime, error)) {
+        return false;
+    }
+
+    std::error_code ec{};
     std::filesystem::rename(temporary, out, ec);
     if (ec) {
         std::filesystem::remove(temporary, ec);
         error = out.wstring() + L": cannot replace";
         return false;
     }
+
     return true;
 }
