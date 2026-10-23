@@ -13,7 +13,8 @@ Mod works with stock [GOG version](https://www.gog.com/en/game/heroes_of_might_a
 - **HoF windowed mode**. Fixes stock version not having window frame when switched to windowed mode.
 
 > [!NOTE]
-> Stock Tribes of the East already has widescreen support and windowed mode. 
+> Stock Tribes of the East already has widescreen support and windowed mode.
+>
 > (Except it ships with Dark Messiah mod, a standalone exe build which does not have widescreen support. Dark Messiah mod is not supported by this patch.)
 
 ## Optional features (all three games)
@@ -25,8 +26,8 @@ Mod works with stock [GOG version](https://www.gog.com/en/game/heroes_of_might_a
 
 1. Close the games and extract the release zip.
 2. Copy `dinput8.dll` from the zip next to each `H5_Game.exe`: `bin\` for Heroes V and Tribes of the East, `bina1\` for Hammers of Fate.
-3. Run `homm5-widescreen-patch.exe`. If the games are under `Program Files`, run it as administrator. 
-	- **Open folders** opens the game folders plus folder with dinput8.dll in Explorer so you just need Ctrl-C and do Ctrl-V in each game folder. 
+3. Run `homm5-widescreen-patch.exe`. If the games are under `Program Files`, run it as administrator.
+	- **Open folders** opens the game folders plus folder with dinput8.dll in Explorer so you just need Ctrl-C and do Ctrl-V in each game folder.
 	- **Install** stays disabled until every detected game has the DLL.
 4. Choose the options and click **Install**. Building the game data takes a few seconds per game.
 
