@@ -2,7 +2,12 @@
 
 This mod adds proper windowed mode to Heroes of Might and Magic V & Hammers of Fate and realigns UI without stretching on 16:9 resolutions. Also, for all three games it optionally removes fade-to-black effect on launch + removes intro videos. It also optionally replaces Monotype Corsiva in regular text (non-headers) with Palatino Linotype.
 
-Mod works with stock [GOG version](https://www.gog.com/en/game/heroes_of_might_and_magic_5_bundle) and [Steam version](https://store.steampowered.com/bundle/5584/Heroes_of_Might_and_Magic_Collection) of the games. Working with other mods like Heroes 5.5 is not supported yet.
+Mod works with
+
+- [GOG version](https://www.gog.com/en/game/heroes_of_might_and_magic_5_bundle)
+- [Steam version](https://store.steampowered.com/bundle/5584/Heroes_of_Might_and_Magic_Collection)
+- [Heroes 5.5](https://www.moddb.com/mods/might-magic-heroes-55) mod installed on either of these two.
+
 
 ![Hammers of Fate in a widescreen window: unstretched UI, HUD anchored to the screen edges, Palatino body text](docs/screenshot-hof.png)
 
