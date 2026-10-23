@@ -74,6 +74,11 @@ bool DeleteFallbackLog(const Game& game, std::wstring& error) {
         return false;
     }
 
+    // Heroes 5.5 runs its own MMH55.exe from the ToE bin folder, so the same dinput8.dll logs under its tag.
+    if (game.id == GameId::TribesOfTheEast && !DeleteIfPresent(folder / FallbackLogName(L"mmh55"), error)) {
+        return false;
+    }
+
     RemoveDirectoryW(folder.c_str());
     return true;
 }

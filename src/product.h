@@ -1,8 +1,8 @@
 #pragma once
 
 #define PRODUCT_NAME "HoMM5 Widescreen Patch"
-#define PRODUCT_VERSION_TEXT "0.3.1"
-#define PRODUCT_VERSION 0, 3, 1, 0
+#define PRODUCT_VERSION_TEXT "0.4.0"
+#define PRODUCT_VERSION 0, 4, 0, 0
 #define OWN_PAK_NAME "homm5-widescreen.pak"
 #define LOG_FALLBACK_FOLDER "homm5-widescreen"
 

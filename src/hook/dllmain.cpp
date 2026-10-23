@@ -58,6 +58,8 @@ void Install(HMODULE self) {
         build = L"hof21";
     } else if (InstallToe31(image, options, log)) {
         build = L"toe31";
+    } else if (InstallMmh55(image, options, log)) {
+        build = L"mmh55";
     } else {
         char line[96]{};
         wsprintfA(line, "unknown build (timestamp %08x, image size %08x), nothing patched\r\n", image.timestamp(), image.unwrappedSizeOfImage());

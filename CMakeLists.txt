@@ -32,6 +32,7 @@ add_library(homm5-widescreen-hook SHARED
     src/hook/base16.cpp
     src/hook/hof21.cpp
     src/hook/toe31.cpp
+    src/hook/mmh55.cpp
     src/hook/own_pak.cpp
     src/hook/exports.def
     src/hook/hook.rc

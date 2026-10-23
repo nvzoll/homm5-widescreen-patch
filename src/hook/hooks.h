@@ -14,6 +14,7 @@ struct Options {
 bool InstallBase16(const Image& image, const Options& options, std::string& log);
 bool InstallHof21(const Image& image, const Options& options, std::string& log);
 bool InstallToe31(const Image& image, const Options& options, std::string& log);
+bool InstallMmh55(const Image& image, const Options& options, std::string& log);
 
 inline void InstallSkipFade(const Image& image, const std::array<uintptr_t, 2>& calls,
                             const std::array<std::array<uint8_t, 5>, 2>& original, std::string& log) {
