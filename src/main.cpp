@@ -79,7 +79,12 @@ std::wstring PatchStatus(const Game& game) {
     }
 
     switch (QueryHook(game)) {
-        case HookState::Installed: return GamePakComplete(game, ReadSkipFade(game)) ? L"installed" : L"DLL in place, run Install";
+        case HookState::Installed:
+            if (!GamePakComplete(game, ReadSkipFade(game))) {
+                return L"DLL in place, run Install";
+            }
+
+            return GamePakOutdated(game) ? L"game data changed, run Install" : L"installed";
         case HookState::Outdated: return L"old DLL, copy the new one";
         case HookState::Foreign: return L"other dinput8.dll present";
         case HookState::NotInstalled: break;

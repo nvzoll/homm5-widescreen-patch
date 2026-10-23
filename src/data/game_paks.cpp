@@ -48,7 +48,7 @@ bool IsOwn(const std::filesystem::path& pak) {
 
 }  // namespace
 
-bool MountGamePaks(GameId game, const std::filesystem::path& root, PakArchives& archives, std::wstring& error) {
+std::vector<GamePak> GamePakFiles(GameId game, const std::filesystem::path& root) {
     std::vector<std::filesystem::path> scanned{};
     std::error_code ec{};
 
@@ -61,17 +61,16 @@ bool MountGamePaks(GameId game, const std::filesystem::path& root, PakArchives& 
     }
 
     if (ec || scanned.empty()) {
-        error = (root / L"data").wstring() + L": no game paks found";
-        return false;
+        return {};
     }
 
     // FindFirstFile order on NTFS (upper-cased names); the game scans the folder the same way.
     std::sort(scanned.begin(), scanned.end(), [](const auto& a, const auto& b) { return Upper(a.filename().wstring()) < Upper(b.filename().wstring()); });
 
+    std::vector<GamePak> paks{};
+
     for (const auto& pak : scanned) {
-        if (!archives.Add(pak, 0, error)) {
-            return false;
-        }
+        paks.push_back({pak, 0});
     }
 
     std::span<const TablePak> table{};
@@ -86,11 +85,23 @@ bool MountGamePaks(GameId game, const std::filesystem::path& root, PakArchives& 
     for (const TablePak& entry : table) {
         const auto pak = folder / entry.name;
 
-        if (IsOwn(pak) || !std::filesystem::is_regular_file(pak, ec)) {
-            continue;
+        if (!IsOwn(pak) && std::filesystem::is_regular_file(pak, ec)) {
+            paks.push_back({pak, entry.priority});
         }
+    }
 
-        if (!archives.Add(pak, entry.priority, error)) {
+    return paks;
+}
+
+bool MountGamePaks(GameId game, const std::filesystem::path& root, PakArchives& archives, std::wstring& error) {
+    const std::vector<GamePak> paks = GamePakFiles(game, root);
+    if (paks.empty()) {
+        error = (root / L"data").wstring() + L": no game paks found";
+        return false;
+    }
+
+    for (const GamePak& pak : paks) {
+        if (!archives.Add(pak.path, pak.priority, error)) {
             return false;
         }
     }
