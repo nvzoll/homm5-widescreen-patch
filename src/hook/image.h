@@ -18,7 +18,14 @@ public:
     Image();
 
     uint32_t timestamp() const { return timestamp_; }
-    uint32_t sizeOfImage() const { return sizeOfImage_; }
+    uint32_t unwrappedSizeOfImage() const { return unwrappedSizeOfImage_; }
+    bool steamStub() const { return steamStub_; }
+    const char* store() const { return steamStub_ ? "Steam" : "GOG"; }
+    bool IsBuild(uint32_t timestamp, uint32_t sizeOfImage) const {
+        return timestamp_ == timestamp && unwrappedSizeOfImage_ == sizeOfImage;
+    }
+
+    void** ImportSlot(const char* dll, const char* function) const;
 
     template <typename T>
     T* At(uintptr_t va) const { return reinterpret_cast<T*>(va - kPreferredBase + base_); }
@@ -38,5 +45,6 @@ private:
 
     uintptr_t base_;
     uint32_t timestamp_;
-    uint32_t sizeOfImage_;
+    uint32_t unwrappedSizeOfImage_;
+    bool steamStub_;
 };

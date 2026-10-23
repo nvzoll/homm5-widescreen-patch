@@ -2,7 +2,7 @@
 
 This mod adds proper windowed mode to Heroes of Might and Magic V & Hammers of Fate and realigns UI without stretching on 16:9 resolutions. Also, for all three games it optionally removes fade-to-black effect on launch + removes intro videos. It also optionally replaces Monotype Corsiva in regular text (non-headers) with Palatino Linotype.
 
-Currently only the [GOG version](https://www.gog.com/en/game/heroes_of_might_and_magic_5_bundle) is supported.
+Mod works with [GOG version](https://www.gog.com/en/game/heroes_of_might_and_magic_5_bundle) and [Steam version](https://store.steampowered.com/bundle/5584/Heroes_of_Might_and_Magic_Collection) of the games.
 
 ![Hammers of Fate in a widescreen window: unstretched UI, HUD anchored to the screen edges, Palatino body text](docs/screenshot-hof.png)
 
@@ -13,7 +13,7 @@ Currently only the [GOG version](https://www.gog.com/en/game/heroes_of_might_and
 - **HoF windowed mode**. Fixes stock version not having window frame when switched to windowed mode.
 
 > [!NOTE]
-> Stock Tribes of the East already has widescreen support and windowed mode
+> Stock Tribes of the East already has widescreen support and windowed mode. Except it ships with Dark Messiah mod, a standalone exe build which does not have widescreen support. Dark Messiah mod is not supported by this patch.
 
 ## Optional features (all three games)
 
@@ -23,7 +23,7 @@ Currently only the [GOG version](https://www.gog.com/en/game/heroes_of_might_and
 ## Installation
 
 1. Close the games and extract the release zip.
-2. Copy `dinput8.dll` from the zip next to each `H5_Game.exe`: `bin\` and `bina1\` of Heroes V, and `bin\` of Tribes of the East.
+2. Copy `dinput8.dll` from the zip next to each `H5_Game.exe`: `bin\` for Heroes V and Tribes of the East, `bina1\` for Hammers of Fate.
 3. Run `homm5-widescreen-patch.exe`. If the games are under `Program Files`, run it as administrator. 
 	- **Open folders** opens the game folders plus folder with dinput8.dll in Explorer so you just need Ctrl-C and do Ctrl-V in each game folder. 
 	- **Install** stays disabled until every detected game has the DLL.
@@ -60,7 +60,7 @@ Installed files:
 
 ## Languages
 
-Fot font swap, every GOG language except Simplified Chinese should work: Czech, English, French, German, Hungarian, Italian, Polish, Russian, Spanish. Only EN was tested though.
+For font swap, every GOG language except Simplified Chinese should work: Czech, English, French, German, Hungarian, Italian, Polish, Russian, Spanish. Only EN was tested though.
 
 If installed games are in Chinese, font fix option is unavailable during install.
 

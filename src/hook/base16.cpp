@@ -66,8 +66,10 @@ __declspec(naked) void SetVirtualScreenStub() {
 }  // namespace
 
 bool InstallBase16(const Image& image, const Options& options, std::string& log) {
-    if (image.timestamp() != kTimestamp || image.sizeOfImage() != kSizeOfImage) return false;
-    log += "Heroes V 1.6 (GOG)\r\n";
+    if (!image.IsBuild(kTimestamp, kSizeOfImage)) return false;
+    log += "Heroes V 1.6 (";
+    log += image.store();
+    log += ")\r\n";
 
     if (!InstallOwnPak(image, kVfsFactory, log)) {
         log += "  widescreen: skipped, needs the pak\r\n";

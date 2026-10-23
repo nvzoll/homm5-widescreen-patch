@@ -17,8 +17,10 @@ constexpr std::array<std::array<uint8_t, 5>, 2> kFadeCallsOriginal = {{
 }  // namespace
 
 bool InstallToe31(const Image& image, const Options& options, std::string& log) {
-    if (image.timestamp() != kTimestamp || image.sizeOfImage() != kSizeOfImage) return false;
-    log += "Heroes V: Tribes of the East 3.1 (GOG)\r\n";
+    if (!image.IsBuild(kTimestamp, kSizeOfImage)) return false;
+    log += "Heroes V: Tribes of the East 3.1 (";
+    log += image.store();
+    log += ")\r\n";
     if (options.skipFade) InstallSkipFade(image, kFadeCalls, kFadeCallsOriginal, log);
     return true;
 }

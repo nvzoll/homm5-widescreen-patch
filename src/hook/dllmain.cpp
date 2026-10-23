@@ -53,10 +53,42 @@ void Install(HMODULE self) {
         build = L"toe31";
     } else {
         char line[96];
-        wsprintfA(line, "unknown build (timestamp %08x, image size %08x), nothing patched\r\n", image.timestamp(), image.sizeOfImage());
+        wsprintfA(line, "unknown build (timestamp %08x, image size %08x), nothing patched\r\n", image.timestamp(), image.unwrappedSizeOfImage());
         log += line;
     }
     if (!WriteLog(SiblingPath(self, L"homm5-widescreen.log"), log)) WriteFallbackLog(build, log);
+}
+
+using InittermEFn = int(__cdecl*)(void*, void*);
+
+HMODULE g_self;
+void** g_deferredSlot;
+InittermEFn g_deferredOriginal;
+
+void SetImportSlot(void** slot, void* target) {
+    DWORD oldProtect;
+    VirtualProtect(slot, sizeof *slot, PAGE_READWRITE, &oldProtect);
+    *slot = target;
+    VirtualProtect(slot, sizeof *slot, oldProtect, &oldProtect);
+}
+
+int __cdecl InstallBeforeInitializers(void* first, void* last) {
+    SetImportSlot(g_deferredSlot, reinterpret_cast<void*>(g_deferredOriginal));
+    Install(g_self);
+    return g_deferredOriginal(first, last);
+}
+
+// SteamStub decrypts .text after DllMain; the CRT's first import call is _initterm_e, before any game initializer.
+bool DeferPastSteamStub(HMODULE self) {
+    const Image image;
+    if (!image.steamStub()) return false;
+    void** slot = image.ImportSlot("api-ms-win-crt-runtime-l1-1-0.dll", "_initterm_e");
+    if (!slot) return false;
+    g_self = self;
+    g_deferredSlot = slot;
+    g_deferredOriginal = reinterpret_cast<InittermEFn>(*slot);
+    SetImportSlot(slot, reinterpret_cast<void*>(&InstallBeforeInitializers));
+    return true;
 }
 
 }  // namespace
@@ -64,7 +96,7 @@ void Install(HMODULE self) {
 BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID) {
     if (reason == DLL_PROCESS_ATTACH) {
         DisableThreadLibraryCalls(instance);
-        Install(instance);
+        if (!DeferPastSteamStub(instance)) Install(instance);
     }
     return TRUE;
 }

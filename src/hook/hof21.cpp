@@ -150,8 +150,10 @@ void Report(std::string& log, const char* feature, bool installed) {
 }  // namespace
 
 bool InstallHof21(const Image& image, const Options& options, std::string& log) {
-    if (image.timestamp() != kTimestamp || image.sizeOfImage() != kSizeOfImage) return false;
-    log += "Heroes V: Hammers of Fate 2.1 (GOG)\r\n";
+    if (!image.IsBuild(kTimestamp, kSizeOfImage)) return false;
+    log += "Heroes V: Hammers of Fate 2.1 (";
+    log += image.store();
+    log += ")\r\n";
 
     g_windowed = image.At<const BOOL>(kPresentParamsWindowed);
     g_mainHwnd = image.At<const HWND>(kMainHwnd);

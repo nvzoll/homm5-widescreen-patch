@@ -68,12 +68,21 @@ void SetCell(HWND list, int row, int column, const std::wstring& text) {
     ListView_SetItemText(list, row, column, const_cast<wchar_t*>(text.c_str()));
 }
 
+std::vector<Game> SelectedGames(HWND dialog) {
+    HWND list = GetDlgItem(dialog, IDC_GAMES);
+    std::vector<Game> selected;
+    for (int row = 0; row < static_cast<int>(g_games.size()); ++row) {
+        if (ListView_GetCheckState(list, row)) selected.push_back(g_games[row]);
+    }
+    return selected;
+}
+
 void FillGameList(HWND dialog) {
     HWND list = GetDlgItem(dialog, IDC_GAMES);
-    ListView_SetExtendedListViewStyle(list, LVS_EX_FULLROWSELECT);
+    ListView_SetExtendedListViewStyle(list, LVS_EX_FULLROWSELECT | LVS_EX_CHECKBOXES);
     const UINT dpi = GetDpiForWindow(dialog);
     const auto scaled = [dpi](int width) { return MulDiv(width, dpi, 96); };
-    AddColumn(list, 0, L"Game", scaled(130));
+    AddColumn(list, 0, L"Game", scaled(150));
     AddColumn(list, 1, L"Store", scaled(50));
     AddColumn(list, 2, L"Language", scaled(70));
     AddColumn(list, 3, L"Executable", scaled(170));
@@ -92,6 +101,7 @@ void FillGameList(HWND dialog) {
         SetCell(list, row, 3, ExeStatus(game));
         SetCell(list, row, 4, PatchStatus(game));
         SetCell(list, row, 5, game.root.wstring());
+        ListView_SetCheckState(list, row, IsSupported(game) || QueryHook(game) == HookState::Installed);
     }
 }
 
@@ -105,34 +115,40 @@ void RefreshPatchColumn(HWND dialog) {
     }
 }
 
-bool AnySupported() {
-    for (const Game& game : g_games) {
+bool AnySupported(const std::vector<Game>& games) {
+    for (const Game& game : games) {
         if (IsSupported(game)) return true;
     }
     return false;
 }
 
-bool AnySupportsReadableFonts() {
-    for (const Game& game : g_games) {
+bool AnySupportsReadableFonts(const std::vector<Game>& games) {
+    for (const Game& game : games) {
         if (IsSupported(game) && SupportsReadableFonts(game)) return true;
     }
     return false;
 }
 
-bool AllSupportedHaveHook() {
-    for (const Game& game : g_games) {
+bool AllSupportedHaveHook(const std::vector<Game>& games) {
+    for (const Game& game : games) {
         if (IsSupported(game) && QueryHook(game) != HookState::Installed) return false;
     }
     return true;
 }
 
+bool InstallUnlocked(const std::vector<Game>& selected) {
+    return AnySupported(selected) && AllSupportedHaveHook(selected);
+}
+
 void EnableControls(HWND dialog, bool enabled) {
-    const bool supported = enabled && AnySupported();
+    const std::vector<Game> selected = SelectedGames(dialog);
+    const bool supported = enabled && AnySupported(selected);
+    EnableWindow(GetDlgItem(dialog, IDC_GAMES), enabled);
     EnableWindow(GetDlgItem(dialog, IDC_SKIP_INTRO), supported);
-    EnableWindow(GetDlgItem(dialog, IDC_FONTS), supported && g_palatino && AnySupportsReadableFonts());
+    EnableWindow(GetDlgItem(dialog, IDC_FONTS), supported && g_palatino && AnySupportsReadableFonts(selected));
     EnableWindow(GetDlgItem(dialog, IDC_OPEN_FOLDERS), supported);
-    EnableWindow(GetDlgItem(dialog, IDC_INSTALL), supported && AllSupportedHaveHook());
-    EnableWindow(GetDlgItem(dialog, IDC_UNINSTALL), enabled && !g_games.empty());
+    EnableWindow(GetDlgItem(dialog, IDC_INSTALL), enabled && InstallUnlocked(selected));
+    EnableWindow(GetDlgItem(dialog, IDC_UNINSTALL), enabled && !selected.empty());
 }
 
 void InitOptions(HWND dialog) {
@@ -147,12 +163,12 @@ void InitOptions(HWND dialog) {
     }
     CheckDlgButton(dialog, IDC_WIDESCREEN, BST_CHECKED);
     CheckDlgButton(dialog, IDC_SKIP_INTRO, skipFade ? BST_CHECKED : BST_UNCHECKED);
-    CheckDlgButton(dialog, IDC_FONTS, fonts && g_palatino && AnySupportsReadableFonts() ? BST_CHECKED : BST_UNCHECKED);
+    CheckDlgButton(dialog, IDC_FONTS, fonts && g_palatino && AnySupportsReadableFonts(g_games) ? BST_CHECKED : BST_UNCHECKED);
     EnableControls(dialog, true);
 }
 
-void Install(HWND dialog, bool skipFade, bool fonts) {
-    for (const Game& game : g_games) {
+void Install(HWND dialog, const std::vector<Game>& games, bool skipFade, bool fonts) {
+    for (const Game& game : games) {
         const std::wstring name(GameName(game.id));
         if (!game.build) {
             PostLog(dialog, name + L": skipped, " + ExeStatus(game) + L" (only unmodified store builds are supported)");
@@ -167,8 +183,8 @@ void Install(HWND dialog, bool skipFade, bool fonts) {
     }
 }
 
-void Uninstall(HWND dialog) {
-    for (const Game& game : g_games) {
+void Uninstall(HWND dialog, const std::vector<Game>& games) {
+    for (const Game& game : games) {
         const std::wstring name(GameName(game.id));
         const HookState state = QueryHook(game);
         std::wstring error;
@@ -202,9 +218,10 @@ void ReportGames(HWND dialog) {
         AppendLog(dialog, std::wstring(GameName(game.id)) + L" (" + game.store + package + L"): " + game.exe.wstring());
         AppendLog(dialog, L"  sha256 " + Widen(game.exeSha256) + L" - " + ExeStatus(game));
     }
-    if (!AnySupported() || AllSupportedHaveHook()) return;
+    const std::vector<Game> selected = SelectedGames(dialog);
+    if (!AnySupported(selected) || AllSupportedHaveHook(selected)) return;
     AppendLog(dialog, L"Install unlocks once " + PackagedHookDll().wstring() + L" is copied into these folders (Open folders):");
-    for (const Game& game : g_games) {
+    for (const Game& game : selected) {
         if (IsSupported(game) && QueryHook(game) != HookState::Installed) AppendLog(dialog, L"  " + game.exe.parent_path().wstring());
     }
 }
@@ -214,7 +231,8 @@ void ReportPalatino(HWND dialog) {
 }
 
 void WarnIfNotExtracted(HWND dialog) {
-    if (!AnySupported() || AllSupportedHaveHook() || std::filesystem::exists(PackagedHookDll())) return;
+    const std::vector<Game> selected = SelectedGames(dialog);
+    if (!AnySupported(selected) || AllSupportedHaveHook(selected) || std::filesystem::exists(PackagedHookDll())) return;
     const std::wstring text = L"dinput8.dll is not next to the patcher (" + PackagedHookDll().parent_path().wstring() +
                               L").\n\nIf you started the patcher from inside the zip, close it, extract the whole zip to a folder, and run it from there.";
     AppendLog(dialog, L"dinput8.dll not found next to the patcher; extract the whole zip first.");
@@ -226,7 +244,7 @@ void OpenFolders(HWND dialog) {
         const std::wstring select = L"/select,\"" + PackagedHookDll().wstring() + L"\"";
         ShellExecuteW(dialog, L"open", L"explorer.exe", select.c_str(), nullptr, SW_SHOWNORMAL);
     }
-    for (const Game& game : g_games) {
+    for (const Game& game : SelectedGames(dialog)) {
         if (IsSupported(game)) ShellExecuteW(dialog, L"open", game.exe.parent_path().c_str(), nullptr, nullptr, SW_SHOWNORMAL);
     }
 }
@@ -249,7 +267,7 @@ INT_PTR CALLBACK DialogProc(HWND dialog, UINT message, WPARAM wparam, LPARAM lpa
         case WM_TIMER:
             if (!g_job.joinable()) {
                 RefreshPatchColumn(dialog);
-                const bool unlocked = AnySupported() && AllSupportedHaveHook();
+                const bool unlocked = InstallUnlocked(SelectedGames(dialog));
                 if (unlocked != (IsWindowEnabled(GetDlgItem(dialog, IDC_INSTALL)) != FALSE)) EnableControls(dialog, true);
             }
             return TRUE;
@@ -264,19 +282,28 @@ INT_PTR CALLBACK DialogProc(HWND dialog, UINT message, WPARAM wparam, LPARAM lpa
             RefreshPatchColumn(dialog);
             EnableControls(dialog, true);
             return TRUE;
+        case WM_NOTIFY: {
+            const auto* change = reinterpret_cast<const NMLISTVIEW*>(lparam);
+            if (change->hdr.idFrom == IDC_GAMES && change->hdr.code == LVN_ITEMCHANGED && (change->uChanged & LVIF_STATE) &&
+                ((change->uNewState ^ change->uOldState) & LVIS_STATEIMAGEMASK) && !g_job.joinable()) {
+                EnableControls(dialog, true);
+            }
+            return FALSE;
+        }
         case WM_COMMAND:
             switch (LOWORD(wparam)) {
                 case IDC_INSTALL: {
                     const bool skipFade = IsDlgButtonChecked(dialog, IDC_SKIP_INTRO) == BST_CHECKED;
                     const bool fonts = IsDlgButtonChecked(dialog, IDC_FONTS) == BST_CHECKED;
-                    StartJob(dialog, L"Starting installation...", [dialog, skipFade, fonts] { Install(dialog, skipFade, fonts); });
+                    StartJob(dialog, L"Starting installation...",
+                             [dialog, games = SelectedGames(dialog), skipFade, fonts] { Install(dialog, games, skipFade, fonts); });
                     return TRUE;
                 }
                 case IDC_OPEN_FOLDERS:
                     OpenFolders(dialog);
                     return TRUE;
                 case IDC_UNINSTALL:
-                    StartJob(dialog, L"Starting uninstallation...", [dialog] { Uninstall(dialog); });
+                    StartJob(dialog, L"Starting uninstallation...", [dialog, games = SelectedGames(dialog)] { Uninstall(dialog, games); });
                     return TRUE;
                 case IDCANCEL:
                     if (g_job.joinable()) {

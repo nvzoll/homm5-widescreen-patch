@@ -28,7 +28,34 @@ Image::Image() : base_(reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr))) {
     const auto* dos = reinterpret_cast<const IMAGE_DOS_HEADER*>(base_);
     const auto* nt = reinterpret_cast<const IMAGE_NT_HEADERS32*>(base_ + dos->e_lfanew);
     timestamp_ = nt->FileHeader.TimeDateStamp;
-    sizeOfImage_ = nt->OptionalHeader.SizeOfImage;
+    unwrappedSizeOfImage_ = nt->OptionalHeader.SizeOfImage;
+    steamStub_ = false;
+    const WORD count = nt->FileHeader.NumberOfSections;
+    if (count == 0) return;
+    const IMAGE_SECTION_HEADER& last = IMAGE_FIRST_SECTION(nt)[count - 1];
+    if (std::memcmp(last.Name, ".bind\0\0\0", IMAGE_SIZEOF_SHORT_NAME) == 0) {
+        steamStub_ = true;
+        unwrappedSizeOfImage_ = last.VirtualAddress;
+    }
+}
+
+void** Image::ImportSlot(const char* dll, const char* function) const {
+    const auto* dos = reinterpret_cast<const IMAGE_DOS_HEADER*>(base_);
+    const auto* nt = reinterpret_cast<const IMAGE_NT_HEADERS32*>(base_ + dos->e_lfanew);
+    const IMAGE_DATA_DIRECTORY& directory = nt->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT];
+    if (directory.VirtualAddress == 0) return nullptr;
+    for (auto* descriptor = reinterpret_cast<const IMAGE_IMPORT_DESCRIPTOR*>(base_ + directory.VirtualAddress); descriptor->Name != 0;
+         ++descriptor) {
+        if (lstrcmpiA(reinterpret_cast<const char*>(base_ + descriptor->Name), dll) != 0 || descriptor->OriginalFirstThunk == 0) continue;
+        const auto* names = reinterpret_cast<const IMAGE_THUNK_DATA32*>(base_ + descriptor->OriginalFirstThunk);
+        auto** slots = reinterpret_cast<void**>(base_ + descriptor->FirstThunk);
+        for (size_t i = 0; names[i].u1.AddressOfData != 0; ++i) {
+            if (IMAGE_SNAP_BY_ORDINAL32(names[i].u1.Ordinal)) continue;
+            const auto* byName = reinterpret_cast<const IMAGE_IMPORT_BY_NAME*>(base_ + names[i].u1.AddressOfData);
+            if (lstrcmpA(byName->Name, function) == 0) return &slots[i];
+        }
+    }
+    return nullptr;
 }
 
 bool Image::Matches(uintptr_t va, std::span<const uint8_t> bytes, std::span<const size_t> absOffsets) const {
