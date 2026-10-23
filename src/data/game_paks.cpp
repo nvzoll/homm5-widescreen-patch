@@ -51,9 +51,10 @@ bool IsOwn(const std::filesystem::path& pak) {
 bool MountGamePaks(GameId game, const std::filesystem::path& root, PakArchives& archives, std::wstring& error) {
     std::vector<std::filesystem::path> scanned;
     std::error_code ec;
-    for (const auto& entry : std::filesystem::directory_iterator(root / L"data", ec)) {
-        if (entry.is_regular_file() && Lower(entry.path().extension().wstring()) == L".pak" && !IsOwn(entry.path())) {
-            scanned.push_back(entry.path());
+    for (std::filesystem::directory_iterator it(root / L"data", ec), end; !ec && it != end; it.increment(ec)) {
+        std::error_code typeError;
+        if (it->is_regular_file(typeError) && Lower(it->path().extension().wstring()) == L".pak" && !IsOwn(it->path())) {
+            scanned.push_back(it->path());
         }
     }
     if (ec || scanned.empty()) {

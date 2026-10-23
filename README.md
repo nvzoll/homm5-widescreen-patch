@@ -2,7 +2,7 @@
 
 This mod adds proper windowed mode to Heroes of Might and Magic V & Hammers of Fate and realigns UI without stretching on 16:9 resolutions. Also, for all three games it optionally removes fade-to-black effect on launch + removes intro videos. It also optionally replaces Monotype Corsiva in regular text (non-headers) with Palatino Linotype.
 
-Mod works with [GOG version](https://www.gog.com/en/game/heroes_of_might_and_magic_5_bundle) and [Steam version](https://store.steampowered.com/bundle/5584/Heroes_of_Might_and_Magic_Collection) of the games.
+Mod works with stock [GOG version](https://www.gog.com/en/game/heroes_of_might_and_magic_5_bundle) and [Steam version](https://store.steampowered.com/bundle/5584/Heroes_of_Might_and_Magic_Collection) of the games. Working with other mods like Heroes 5.5 is not supported yet.
 
 ![Hammers of Fate in a widescreen window: unstretched UI, HUD anchored to the screen edges, Palatino body text](docs/screenshot-hof.png)
 
@@ -13,7 +13,8 @@ Mod works with [GOG version](https://www.gog.com/en/game/heroes_of_might_and_mag
 - **HoF windowed mode**. Fixes stock version not having window frame when switched to windowed mode.
 
 > [!NOTE]
-> Stock Tribes of the East already has widescreen support and windowed mode. Except it ships with Dark Messiah mod, a standalone exe build which does not have widescreen support. Dark Messiah mod is not supported by this patch.
+> Stock Tribes of the East already has widescreen support and windowed mode. 
+> (Except it ships with Dark Messiah mod, a standalone exe build which does not have widescreen support. Dark Messiah mod is not supported by this patch.)
 
 ## Optional features (all three games)
 

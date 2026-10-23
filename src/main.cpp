@@ -47,10 +47,29 @@ std::wstring ExeStatus(const Game& game) {
     return L"unknown build";
 }
 
+bool IsOurs(HookState state) {
+    return state == HookState::Installed || state == HookState::Outdated;
+}
+
+bool IsPatchable(const Game& game) {
+    return IsSupported(game) && QueryHook(game) != HookState::Foreign;
+}
+
+bool IntroUsedByOtherGame(const Game& game) {
+    std::error_code ec;
+    for (const Game& other : g_games) {
+        if (other.exe != game.exe && other.root == game.root && std::filesystem::exists(GamePakPath(other), ec) && ReadSkipFade(other)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 std::wstring PatchStatus(const Game& game) {
-    if (!game.build) return QueryHook(game) == HookState::Installed ? L"unsupported, run Uninstall" : L"unsupported";
+    if (!game.build) return IsOurs(QueryHook(game)) ? L"unsupported, run Uninstall" : L"unsupported";
     switch (QueryHook(game)) {
         case HookState::Installed: return GamePakComplete(game, ReadSkipFade(game)) ? L"installed" : L"DLL in place, run Install";
+        case HookState::Outdated: return L"old DLL, copy the new one";
         case HookState::Foreign: return L"other dinput8.dll present";
         case HookState::NotInstalled: break;
     }
@@ -101,7 +120,7 @@ void FillGameList(HWND dialog) {
         SetCell(list, row, 3, ExeStatus(game));
         SetCell(list, row, 4, PatchStatus(game));
         SetCell(list, row, 5, game.root.wstring());
-        ListView_SetCheckState(list, row, IsSupported(game) || QueryHook(game) == HookState::Installed);
+        ListView_SetCheckState(list, row, IsPatchable(game) || IsOurs(QueryHook(game)));
     }
 }
 
@@ -115,34 +134,34 @@ void RefreshPatchColumn(HWND dialog) {
     }
 }
 
-bool AnySupported(const std::vector<Game>& games) {
+bool AnyPatchable(const std::vector<Game>& games) {
     for (const Game& game : games) {
-        if (IsSupported(game)) return true;
+        if (IsPatchable(game)) return true;
     }
     return false;
 }
 
 bool AnySupportsReadableFonts(const std::vector<Game>& games) {
     for (const Game& game : games) {
-        if (IsSupported(game) && SupportsReadableFonts(game)) return true;
+        if (IsPatchable(game) && SupportsReadableFonts(game)) return true;
     }
     return false;
 }
 
-bool AllSupportedHaveHook(const std::vector<Game>& games) {
+bool AllPatchableHaveHook(const std::vector<Game>& games) {
     for (const Game& game : games) {
-        if (IsSupported(game) && QueryHook(game) != HookState::Installed) return false;
+        if (IsPatchable(game) && QueryHook(game) != HookState::Installed) return false;
     }
     return true;
 }
 
 bool InstallUnlocked(const std::vector<Game>& selected) {
-    return AnySupported(selected) && AllSupportedHaveHook(selected);
+    return AnyPatchable(selected) && AllPatchableHaveHook(selected);
 }
 
 void EnableControls(HWND dialog, bool enabled) {
     const std::vector<Game> selected = SelectedGames(dialog);
-    const bool supported = enabled && AnySupported(selected);
+    const bool supported = enabled && AnyPatchable(selected);
     EnableWindow(GetDlgItem(dialog, IDC_GAMES), enabled);
     EnableWindow(GetDlgItem(dialog, IDC_SKIP_INTRO), supported);
     EnableWindow(GetDlgItem(dialog, IDC_FONTS), supported && g_palatino && AnySupportsReadableFonts(selected));
@@ -174,11 +193,15 @@ void Install(HWND dialog, const std::vector<Game>& games, bool skipFade, bool fo
             PostLog(dialog, name + L": skipped, " + ExeStatus(game) + L" (only unmodified store builds are supported)");
             continue;
         }
+        if (QueryHook(game) == HookState::Foreign) {
+            PostLog(dialog, name + L": skipped, the dinput8.dll there belongs to another mod");
+            continue;
+        }
         const bool gameFonts = fonts && SupportsReadableFonts(game);
         if (fonts && !gameFonts) PostLog(dialog, name + L": Readable fonts is not available for game language " + game.language);
         PostLog(dialog, name + L": building game data...");
         std::wstring error;
-        const bool ok = WriteHookOptions(game, skipFade, error) && InstallGamePak(game, gameFonts, skipFade, error);
+        const bool ok = WriteHookOptions(game, skipFade, error) && InstallGamePak(game, gameFonts, skipFade, IntroUsedByOtherGame(game), error);
         PostLog(dialog, name + (ok ? L": installed" : L": FAILED, " + error));
     }
 }
@@ -188,12 +211,12 @@ void Uninstall(HWND dialog, const std::vector<Game>& games) {
         const std::wstring name(GameName(game.id));
         const HookState state = QueryHook(game);
         std::wstring error;
-        if (!UninstallGamePak(game, error) || !UninstallHook(game, error)) {
+        if (!UninstallGamePak(game, IntroUsedByOtherGame(game), error) || !UninstallHook(game, error)) {
             PostLog(dialog, name + L": FAILED, " + error);
         } else if (state == HookState::Foreign) {
             PostLog(dialog, name + L": the dinput8.dll there is not ours, left in place");
         } else {
-            PostLog(dialog, name + (state == HookState::Installed ? L": uninstalled" : L": nothing to remove"));
+            PostLog(dialog, name + (IsOurs(state) ? L": uninstalled" : L": nothing to remove"));
         }
     }
 }
@@ -219,10 +242,18 @@ void ReportGames(HWND dialog) {
         AppendLog(dialog, L"  sha256 " + Widen(game.exeSha256) + L" - " + ExeStatus(game));
     }
     const std::vector<Game> selected = SelectedGames(dialog);
-    if (!AnySupported(selected) || AllSupportedHaveHook(selected)) return;
+    std::vector<const Game*> foreign;
+    for (const Game& game : g_games) {
+        if (IsSupported(game) && QueryHook(game) == HookState::Foreign) foreign.push_back(&game);
+    }
+    if (!foreign.empty()) {
+        AppendLog(dialog, L"Another mod's dinput8.dll is present in these folders, so they are skipped:");
+        for (const Game* game : foreign) AppendLog(dialog, L"  " + game->exe.parent_path().wstring());
+    }
+    if (!AnyPatchable(selected) || AllPatchableHaveHook(selected)) return;
     AppendLog(dialog, L"Install unlocks once " + PackagedHookDll().wstring() + L" is copied into these folders (Open folders):");
     for (const Game& game : selected) {
-        if (IsSupported(game) && QueryHook(game) != HookState::Installed) AppendLog(dialog, L"  " + game.exe.parent_path().wstring());
+        if (IsPatchable(game) && QueryHook(game) != HookState::Installed) AppendLog(dialog, L"  " + game.exe.parent_path().wstring());
     }
 }
 
@@ -232,7 +263,8 @@ void ReportPalatino(HWND dialog) {
 
 void WarnIfNotExtracted(HWND dialog) {
     const std::vector<Game> selected = SelectedGames(dialog);
-    if (!AnySupported(selected) || AllSupportedHaveHook(selected) || std::filesystem::exists(PackagedHookDll())) return;
+    std::error_code ec;
+    if (!AnyPatchable(selected) || AllPatchableHaveHook(selected) || std::filesystem::exists(PackagedHookDll(), ec)) return;
     const std::wstring text = L"dinput8.dll is not next to the patcher (" + PackagedHookDll().parent_path().wstring() +
                               L").\n\nIf you started the patcher from inside the zip, close it, extract the whole zip to a folder, and run it from there.";
     AppendLog(dialog, L"dinput8.dll not found next to the patcher; extract the whole zip first.");
@@ -240,12 +272,13 @@ void WarnIfNotExtracted(HWND dialog) {
 }
 
 void OpenFolders(HWND dialog) {
-    if (std::filesystem::exists(PackagedHookDll())) {
+    std::error_code ec;
+    if (std::filesystem::exists(PackagedHookDll(), ec)) {
         const std::wstring select = L"/select,\"" + PackagedHookDll().wstring() + L"\"";
         ShellExecuteW(dialog, L"open", L"explorer.exe", select.c_str(), nullptr, SW_SHOWNORMAL);
     }
     for (const Game& game : SelectedGames(dialog)) {
-        if (IsSupported(game)) ShellExecuteW(dialog, L"open", game.exe.parent_path().c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+        if (IsPatchable(game)) ShellExecuteW(dialog, L"open", game.exe.parent_path().c_str(), nullptr, nullptr, SW_SHOWNORMAL);
     }
 }
 

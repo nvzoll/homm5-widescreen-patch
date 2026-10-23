@@ -47,7 +47,7 @@ bool WriteBytes(const std::filesystem::path& path, std::span<const uint8_t> byte
 }
 
 bool DeleteIfPresent(const std::filesystem::path& path, std::wstring& error) {
-    if (DeleteFileW(path.c_str()) || GetLastError() == ERROR_FILE_NOT_FOUND) return true;
+    if (DeleteFileW(path.c_str()) || GetLastError() == ERROR_FILE_NOT_FOUND || GetLastError() == ERROR_PATH_NOT_FOUND) return true;
     error = path.wstring() + L": cannot delete";
     return false;
 }
@@ -80,7 +80,7 @@ bool ReadFontsOption(const Game& game) {
     return GetPrivateProfileIntW(L"options", L"fonts", 1, IniPath(game).c_str()) != 0;
 }
 
-bool InstallGamePak(const Game& game, bool fonts, bool skipIntro, std::wstring& error) {
+bool InstallGamePak(const Game& game, bool fonts, bool skipIntro, bool keepSharedIntro, std::wstring& error) {
     const auto recipe = EmbeddedRecipe(game.id);
     if (recipe.empty()) {
         error = L"the embedded layout recipe is missing from this build.";
@@ -88,7 +88,7 @@ bool InstallGamePak(const Game& game, bool fonts, bool skipIntro, std::wstring& 
     }
     const GamePakOptions options{fonts, skipIntro};
     if (!BuildGamePak(game.id, game.root, recipe, options, GamePakPath(game), error)) return false;
-    if (!(skipIntro ? InstallIntroFiles(game, error) : UninstallIntroFiles(game, error))) return false;
+    if (skipIntro ? !InstallIntroFiles(game, error) : !keepSharedIntro && !UninstallIntroFiles(game, error)) return false;
     if (!WritePrivateProfileStringW(L"options", L"fonts", fonts ? L"1" : L"0", IniPath(game).c_str())) {
         error = IniPath(game).wstring() + L": cannot write";
         return false;
@@ -97,10 +97,11 @@ bool InstallGamePak(const Game& game, bool fonts, bool skipIntro, std::wstring& 
 }
 
 bool GamePakComplete(const Game& game, bool skipIntro) {
-    if (!std::filesystem::exists(GamePakPath(game))) return false;
-    return !skipIntro || (std::filesystem::exists(VideoPath(game, kIntroClip)) && std::filesystem::exists(VideoPath(game, kIntroPlaylist)));
+    std::error_code ec;
+    if (!std::filesystem::exists(GamePakPath(game), ec)) return false;
+    return !skipIntro || (std::filesystem::exists(VideoPath(game, kIntroClip), ec) && std::filesystem::exists(VideoPath(game, kIntroPlaylist), ec));
 }
 
-bool UninstallGamePak(const Game& game, std::wstring& error) {
-    return DeleteIfPresent(GamePakPath(game), error) && UninstallIntroFiles(game, error);
+bool UninstallGamePak(const Game& game, bool keepSharedIntro, std::wstring& error) {
+    return DeleteIfPresent(GamePakPath(game), error) && (keepSharedIntro || UninstallIntroFiles(game, error));
 }

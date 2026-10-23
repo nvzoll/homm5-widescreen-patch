@@ -5,7 +5,7 @@
 #include <filesystem>
 #include <string>
 
-enum class HookState { NotInstalled, Installed, Foreign };
+enum class HookState { NotInstalled, Installed, Outdated, Foreign };
 
 std::filesystem::path HookDllPath(const Game& game);
 std::filesystem::path PackagedHookDll();

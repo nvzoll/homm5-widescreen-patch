@@ -60,7 +60,8 @@ void AddProductGames(const StoreProduct& product, const wchar_t* store, const st
     for (size_t i = 0; i < product.exeCount; ++i) {
         const auto& [id, relative] = product.exes[i];
         Game game{id, store, version, language, root, root / relative};
-        if (!std::filesystem::exists(game.exe)) continue;
+        std::error_code ec;
+        if (!std::filesystem::exists(game.exe, ec)) continue;
         game.exeSha256 = Sha256File(game.exe).value_or("");
         game.build = FindBuild(id, game.exeSha256);
         games.push_back(std::move(game));

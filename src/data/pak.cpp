@@ -92,6 +92,9 @@ bool WritePak(const std::filesystem::path& path, const std::vector<PakFile>& fil
         }
     }
     if (zipClose(zip, nullptr) != ZIP_OK && ok) ok = Fail(error, path, L"cannot finish the archive");
-    if (!ok) std::filesystem::remove(path);
+    if (!ok) {
+        std::error_code ec;
+        std::filesystem::remove(path, ec);
+    }
     return ok;
 }

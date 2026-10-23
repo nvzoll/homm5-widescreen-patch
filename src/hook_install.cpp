@@ -57,16 +57,32 @@ bool DeleteFallbackLog(const Game& game, std::wstring& error) {
     return true;
 }
 
-std::wstring ProductNameOf(const std::filesystem::path& path) {
+struct DllVersion {
+    std::wstring productName;
+    uint64_t fileVersion = 0;
+};
+
+DllVersion VersionOf(const std::filesystem::path& path) {
     DWORD handle = 0;
     const DWORD size = GetFileVersionInfoSizeW(path.c_str(), &handle);
     if (size == 0) return {};
     std::vector<uint8_t> info(size);
     if (!GetFileVersionInfoW(path.c_str(), 0, size, info.data())) return {};
-    wchar_t* value = nullptr;
+    DllVersion version;
+    wchar_t* name = nullptr;
     UINT length = 0;
-    if (!VerQueryValueW(info.data(), L"\\StringFileInfo\\040904b0\\ProductName", reinterpret_cast<void**>(&value), &length)) return {};
-    return {value, length ? length - 1 : 0};
+    if (VerQueryValueW(info.data(), L"\\StringFileInfo\\040904b0\\ProductName", reinterpret_cast<void**>(&name), &length)) {
+        version.productName.assign(name, length ? length - 1 : 0);
+    }
+    VS_FIXEDFILEINFO* fixed = nullptr;
+    if (VerQueryValueW(info.data(), L"\\", reinterpret_cast<void**>(&fixed), &length) && length >= sizeof(*fixed)) {
+        version.fileVersion = (uint64_t{fixed->dwFileVersionMS} << 32) | fixed->dwFileVersionLS;
+    }
+    return version;
+}
+
+constexpr uint64_t PackVersion(uint64_t major, uint64_t minor, uint64_t patch, uint64_t build) {
+    return (major << 48) | (minor << 32) | (patch << 16) | build;
 }
 
 }  // namespace
@@ -83,8 +99,11 @@ std::filesystem::path PackagedHookDll() {
 
 HookState QueryHook(const Game& game) {
     const auto dll = HookDllPath(game);
-    if (!std::filesystem::exists(dll)) return HookState::NotInstalled;
-    return ProductNameOf(dll) == L"" PRODUCT_NAME ? HookState::Installed : HookState::Foreign;
+    std::error_code ec;
+    if (!std::filesystem::exists(dll, ec)) return HookState::NotInstalled;
+    const DllVersion version = VersionOf(dll);
+    if (version.productName != L"" PRODUCT_NAME) return HookState::Foreign;
+    return version.fileVersion == PackVersion(PRODUCT_VERSION) ? HookState::Installed : HookState::Outdated;
 }
 
 bool ReadSkipFade(const Game& game) {
@@ -102,7 +121,8 @@ bool WriteHookOptions(const Game& game, bool skipFade, std::wstring& error) {
 }
 
 bool UninstallHook(const Game& game, std::wstring& error) {
-    if (QueryHook(game) == HookState::Installed && !DeleteIfPresent(HookDllPath(game), error)) return false;
+    const HookState state = QueryHook(game);
+    if ((state == HookState::Installed || state == HookState::Outdated) && !DeleteIfPresent(HookDllPath(game), error)) return false;
     return DeleteIfPresent(InGameDir(game, kIni), error) && DeleteIfPresent(InGameDir(game, kLog), error) &&
            DeleteFallbackLog(game, error);
 }
