@@ -40,7 +40,7 @@ constexpr std::array STEAM_APPS = {
 
 std::optional<std::wstring> ReadRegistryString(HKEY root, const std::wstring& subkey, const wchar_t* value) {
     DWORD size = 0;
-    const DWORD flags = RRF_RT_REG_SZ | RRF_SUBKEY_WOW6432KEY;
+    const DWORD flags = RRF_RT_REG_SZ;
 
     if (RegGetValueW(root, subkey.c_str(), value, flags, nullptr, nullptr, &size) != ERROR_SUCCESS) {
         return std::nullopt;
