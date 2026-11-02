@@ -24,6 +24,7 @@ constexpr std::array BASE_TABLE = {
     TablePak{L"p6-data.pak", 2},      TablePak{L"p7-texts.pak", TEXTS}, TablePak{L"p7-data.pak", 3},
     TablePak{L"p8-texts.pak", TEXTS}, TablePak{L"p8-data.pak", 4},
 };
+
 constexpr std::array HOF_TABLE = {
     TablePak{L"texts.pak", TEXTS},    TablePak{L"p0-data.pak", 1},     TablePak{L"p1-data.pak", 1},
     TablePak{L"p2-data.pak", 1},      TablePak{L"p3-data.pak", 1},     TablePak{L"p0-texts.pak", TEXTS},

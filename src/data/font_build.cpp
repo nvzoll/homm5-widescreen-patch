@@ -17,16 +17,19 @@ namespace {
 constexpr wchar_t FACE[] = L"Palatino Linotype";
 constexpr int WEIGHT = FW_NORMAL;
 constexpr double SCALE = 0.78;
+
 constexpr std::array BODY_FONTS = {"Default_18", "Default_20", "Default_22", "Default_26", "Default_32", "Default_40"};
 
 constexpr char BRIEF_NAME[] = "Brief";
 constexpr double BRIEF_TRACKING_PER_EM = 0.05;
 constexpr double BRIEF_WORD_SPACING_PER_EM = 0.06;
 constexpr double BRIEF_STRETCH = 1.12;
+
 struct BriefFont {
     const char* templateName;
     const char* uid;  // uuid5(NAMESPACE_URL, "homm5-mod/Brief_<size>")
 };
+
 constexpr std::array BRIEF_FONTS = {
     BriefFont{"Default_22", "2FA689DD-1F0F-5F4D-9B73-B28A2789A71B"},
     BriefFont{"Default_26", "90CEA78A-02FA-585E-846E-2364E9DEFC1A"},
@@ -697,19 +700,23 @@ struct Tag {
     const wchar_t* expansion;
     bool overridden;  // progress_bar also styles other screens, so its users get Brief inlined instead
 };
+
 constexpr std::array LOADING_SCREEN_TAGS = {
     Tag{L"pwl_h3", L"<font face=Brief size=22><color_white><outline>", true},
     Tag{L"pwl_h4", L"<font face=Brief size=20><color_default><outline>", true},
     Tag{L"progress_bar", L"<font face=Brief size=20><color_bright><outline><center>", false},
 };
+
 // Base reverts overridden tag files on 2nd+ loads, so the fonts are inlined into these texts as well.
 constexpr std::array INLINED_TEXTS = {"UI/pwlscreen/MapDesc.txt", "UI/pwlscreen/MissionNumber.txt", "UI/pwlscreen/ProgressBarText.txt",
                                       "UI/AdventureScreen/EnemyTurnBox/player_name_text.txt"};
+
 constexpr std::array LEFT_ALIGNED_TEXTS = {"UI/pwlscreen/MapDesc.txt", "UI/CreatureInfo/CreatureInfoWindow/description_text.txt",
                                           "UI/HeroScreen3/HeroBiography.txt", "UI/HeroScreen3/HeroDescriptionFormat.txt",
                                           "UI/SaveLoad/SaveInfo/Definition/mapdescriptionvalue.txt",
                                           "UI/TowerOfAstrologer/Captions/Description.txt", "UI/TownInfo/town-description.txt",
                                           "Text/MissionObjectives/QuestDescNormalFormat_Text.txt"};
+
 constexpr std::array SPACED_TEXTS = {"UI/pwlscreen/ChooseBonus_Text.txt", "UI/pwlscreen/Loading.txt", "UI/pwlscreen/PressAnyKey.txt",
                                      "UI/pwlscreen/WaitForPlayers.txt", "UI/AdventureScreen/EnemyTurnBox/player_name_text.txt"};
 
