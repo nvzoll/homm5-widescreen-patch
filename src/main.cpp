@@ -93,6 +93,21 @@ std::wstring PatchStatus(const Game& game) {
     return L"copy dinput8.dll";
 }
 
+UINT WindowDpi(HWND window) {
+    using GetDpiForWindowFn = UINT(WINAPI*)(HWND);
+    static const auto getDpiForWindow =
+        reinterpret_cast<GetDpiForWindowFn>(GetProcAddress(GetModuleHandleW(L"user32.dll"), "GetDpiForWindow"));
+
+    if (getDpiForWindow) {
+        return getDpiForWindow(window);
+    }
+
+    HDC dc = GetDC(window);
+    const int dpi = GetDeviceCaps(dc, LOGPIXELSX);
+    ReleaseDC(window, dc);
+    return dpi > 0 ? static_cast<UINT>(dpi) : 96;
+}
+
 void AddColumn(HWND list, int index, const wchar_t* title, int width) {
     LVCOLUMNW column{LVCF_TEXT | LVCF_WIDTH};
     column.pszText = const_cast<wchar_t*>(title);
@@ -120,7 +135,7 @@ std::vector<Game> SelectedGames(HWND dialog) {
 void FillGameList(HWND dialog) {
     HWND list = GetDlgItem(dialog, IDC_GAMES);
     ListView_SetExtendedListViewStyle(list, LVS_EX_FULLROWSELECT | LVS_EX_CHECKBOXES);
-    const UINT dpi = GetDpiForWindow(dialog);
+    const UINT dpi = WindowDpi(dialog);
     const auto scaled = [dpi](int width) { return MulDiv(width, dpi, 96); };
     AddColumn(list, 0, L"Game", scaled(150));
     AddColumn(list, 1, L"Store", scaled(50));
