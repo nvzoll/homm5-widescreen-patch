@@ -7,7 +7,7 @@
 - **Replace rule** (same in all three games): when two archives contain the same entry, then
   - if either priority is -1 or the priorities are equal, the **newer zip entry date** wins;
   - otherwise the higher priority wins.
-- Base table (folder `datals\`): `p5-texts` -1, `p5-data` 1, `p6-texts` -1, `p6-data` 2, `p7-texts` -1, `p7-data` 3, `p8-texts` -1, `p8-data` 4. `p7`/`p8` are not shipped. In one mode the same function also mounts `Maps/*.h5m`, `DuelPresets/*.h5p`, `UserCampaigns/*.h5c`, `UserMODs/*.h5u` at -1.
+- Base table (folder `datals\`): `p5-texts` -1, `p5-data` 1, `p6-texts` -1, `p6-data` 2, `p7-texts` -1, `p7-data` 3, `p8-texts` -1, `p8-data` 4. `p7`/`p8` are not shipped. In game mode (not the editor) the same function also mounts `Maps/*.h5m`, `DuelPresets/*.h5p`, `UserCampaigns/*.h5c`, `UserMODs/*.h5u` at -1 (see [User mods](#user-mods-usermodsh5u)).
 - HoF table (folder `dataa1\`): `texts` -1, `p0..p3-data` 1, `p0..p3-texts` -1, `a1-texts`/`a1-sound`/`a1-data` 2, `a1p1-data`/`a1p1-sound` 3, `a1p1-texts` -1.
 - ToE has no table: everything is priority 0 and dates decide. A `zz_*.pak` in `data\` with newer entry dates overrides anything.
 - Consequence for modders: to beat base `p6-data` (priority 2) you need priority >= 3. `zz_*.pak` (priority 0) loses. `datals\p7-data.pak` works but the name may collide with future releases.
@@ -16,6 +16,20 @@
 - Text paks (priority -1) are resolved by date, so the newest entry wins. Font templates therefore come from whichever text pak is newest per game. Do not assume `p6-texts`. In the English GOG package the effective templates are base `data\p3-texts.pak`, HoF `dataa1\a1-texts.pak`, ToE `data\texts.pak`.
 - ToE `data.pak` has 84,312 entries but a 16-bit EOCD count (18,776). A zip reader that trusts the EOCD count misses entries; iterate the central directory to its end instead. The repo's minizip is patched to do that.
 - The game builds its root with `GetCurrentDirectoryA`, so the game itself breaks on paths outside the ANSI code page.
+
+## User mods (`UserMODs\*.h5u`)
+
+- `.h5u` = plain zip, like a `.pak`. Many mods ship this way: "drop the file into `UserMODs\`".
+- Base and ToE mount `UserMODs\*.h5u` at priority -1 in game mode. ToE also mounts `UserMODs\*.zip`.
+- HoF does not support .h5u.
+- Replacement is per entry: a mod only competes on the paths it contains.
+- -1 as priority => the date decides (this mod's priority=100 pak included) => on equal dates the first-mounted copy wins.
+- Mount order: `data\*.pak`, the hard-coded table, `Maps`, `DuelPresets`, `UserCampaigns`, `UserMODs`.
+
+- This mod's pak entries carry fixed build date (`GAME_PAK_DOS_DATE_TIME`). On a shared path, a mod entry dated later wins and silently removes our change for that file.
+- A mod entry dated earlier loses and is silently masked by our copy.
+- Risky shared paths for this mod: `UIGameRoot.xdb` (intro skip), restyled texts such as `HeroDescriptionFormat.txt`, `MapDesc.txt`, `player_name_text.txt`, `ProgressBarText.txt`, and the `mlTags` overrides. Mods that touch only creatures, effects, plain texts or tables do not interact.
+- A mod can also bypass our fonts without sharing a path: its own `uiconsts` can remap the tags, or its texts can use an inline `<font face=Header>`.
 
 ## xdb and UI data
 

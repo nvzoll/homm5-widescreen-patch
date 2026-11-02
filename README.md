@@ -90,6 +90,12 @@ Dev tools:
 
 Third-party code: zlib 1.3.2 with its minizip (zlib licence).
 
+## `.h5u` mods compatibility (ToE)
+
+- Mods in `UserMODs\*.h5u` should work alongside this patch.
+- But, for a rare occasion when another mod replaces the same UI or text files there could be a conflict, and then mod with a newer timestamp wins.
+- Even if another mod is titled "UI Fixes", it does not nesessarily mean there will be a conflict.
+
 ## Implementation details
 
 See [docs/README.md](docs/README.md) for technical details.

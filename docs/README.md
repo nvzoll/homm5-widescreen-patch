@@ -28,9 +28,9 @@ Folders each game reads:
 
 | Game | Data folders |
 |---|---|
-| Base 1.6 | `data\*.pak` + hard-coded table in `datals\` |
+| Base 1.6 | `data\*.pak` + hard-coded table in `datals\` + `UserMODs\*.h5u` |
 | HoF 2.1 | `data\*.pak` + hard-coded table in `dataa1\` |
-| ToE 3.1 | `data\*.pak` only |
+| ToE 3.1 | `data\*.pak` + `UserMODs\*.h5u`/`*.zip` |
 
 ## Summary
 
