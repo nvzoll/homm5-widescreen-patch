@@ -92,7 +92,7 @@ Third-party code: zlib 1.3.2 with its minizip (zlib licence).
 
 ## Implementation details
 
-See [docs/README.md] for technical details.
+See [docs/README.md](docs/README.md) for technical details.
 
 ## Credits
 
