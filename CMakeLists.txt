@@ -5,6 +5,14 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS src/product.h)
+file(STRINGS src/product.h PRODUCT_VERSION_LINE REGEX "^#define PRODUCT_VERSION ")
+string(REGEX REPLACE "^#define PRODUCT_VERSION +([0-9]+), *([0-9]+), *([0-9]+), *([0-9]+).*$" "\\1.\\2.\\3.\\4" PRODUCT_MANIFEST_VERSION "${PRODUCT_VERSION_LINE}")
+if(NOT PRODUCT_MANIFEST_VERSION MATCHES "^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$")
+    message(FATAL_ERROR "cannot read PRODUCT_VERSION from src/product.h")
+endif()
+configure_file(src/app.manifest.in ${CMAKE_CURRENT_BINARY_DIR}/app.manifest @ONLY)
+
 add_library(zlib_minizip STATIC
     third_party/zlib/adler32.c
     third_party/zlib/compress.c
@@ -48,7 +56,7 @@ add_executable(homm5-widescreen-patch WIN32
     src/hook_install.cpp
     src/pak_install.cpp
     src/app.rc
-    src/app.manifest
+    ${CMAKE_CURRENT_BINARY_DIR}/app.manifest
 )
 target_compile_definitions(homm5-widescreen-patch PRIVATE UNICODE _UNICODE WIN32_LEAN_AND_MEAN NOMINMAX)
 target_compile_options(homm5-widescreen-patch PRIVATE /W4 /permissive- /utf-8)

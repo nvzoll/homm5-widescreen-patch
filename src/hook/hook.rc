@@ -12,9 +12,11 @@ BEGIN
     BEGIN
         BLOCK "040904b0"
         BEGIN
+            VALUE "CompanyName", PRODUCT_COMPANY
             VALUE "FileDescription", "HoMM5 widescreen hooks (DirectInput 8 proxy)"
             VALUE "FileVersion", PRODUCT_VERSION_TEXT
             VALUE "InternalName", "homm5-widescreen-hook"
+            VALUE "LegalCopyright", PRODUCT_COPYRIGHT
             VALUE "OriginalFilename", "dinput8.dll"
             VALUE "ProductName", PRODUCT_NAME
             VALUE "ProductVersion", PRODUCT_VERSION_TEXT
